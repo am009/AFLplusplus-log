@@ -562,6 +562,8 @@ save_if_interesting(afl_state_t *afl, void *mem, u32 len, u8 fault) {
 
     }
 
+    /* FUZZERLOG: log for new seed */
+    log_new_seed(queue_fn, "new-cov");
     add_to_queue(afl, queue_fn, len, 0);
 
     if (unlikely(afl->fuzz_mode) &&
@@ -786,6 +788,8 @@ save_if_interesting(afl_state_t *afl, void *mem, u32 len, u8 fault) {
 #endif                                                    /* ^!SIMPLE_FILES */
 
       ++afl->saved_hangs;
+      /* FUZZERLOG: log for new seed */
+      log_new_seed(fn, "new-hang");
 
       afl->last_hang_time = get_cur_time();
 
@@ -800,6 +804,8 @@ save_if_interesting(afl_state_t *afl, void *mem, u32 len, u8 fault) {
          cases. */
 
       ++afl->total_crashes;
+      /* FUZZERLOG: log for new seed */
+      log_new_seed(fn, "new-crash");
 
       if (afl->saved_crashes >= KEEP_UNIQUE_CRASH) { return keeping; }
 

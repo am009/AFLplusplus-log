@@ -46,6 +46,20 @@
 extern u64 time_spent_working;
 #endif
 
+reset_chances_handle reset_chances;
+increase_chances_handle increase_chances;
+reset_mutator_names_handle reset_mutator_names;
+add_mutator_name_handle add_mutator_name;
+log_new_seed_handle log_new_seed;
+reset_current_seed_name_handle reset_current_seed_name;
+set_current_seed_name_handle set_current_seed_name;
+set_splice_seed_name_handle set_splice_seed_name;
+log_chances_handle log_chances;
+fuzzer_logger_start_handle fuzzer_logger_start;
+fuzzer_logger_end_handle fuzzer_logger_end;
+
+void *fuzzer_log_lib;
+
 static void at_exit() {
 
   s32   i, pid1 = 0, pid2 = 0, pgrp = -1;
@@ -2235,6 +2249,27 @@ int main(int argc, char **argv_orig, char **envp) {
 
   }
 
+  /* FUZZERLOG: fuzzer log init */
+
+  fuzzer_log_lib = dlopen("/usr/local/lib/libfuzzerlog.so", RTLD_LAZY | RTLD_DEEPBIND);
+  if (fuzzer_log_lib == NULL) {
+    ABORT("fuzzer-log-lib: dlopen failed: %s", dlerror());
+  }
+
+  reset_chances = dlsym(fuzzer_log_lib, "reset_chances");
+  increase_chances = dlsym(fuzzer_log_lib, "increase_chances");
+  reset_mutator_names = dlsym(fuzzer_log_lib, "reset_mutator_names");
+  add_mutator_name = dlsym(fuzzer_log_lib, "add_mutator_name");
+  log_new_seed = dlsym(fuzzer_log_lib, "log_new_seed");
+  reset_current_seed_name = dlsym(fuzzer_log_lib, "reset_current_seed_name");
+  set_current_seed_name = dlsym(fuzzer_log_lib, "set_current_seed_name");
+  set_splice_seed_name = dlsym(fuzzer_log_lib, "set_splice_seed_name");
+  log_chances = dlsym(fuzzer_log_lib, "log_chances");
+  fuzzer_logger_start = dlsym(fuzzer_log_lib, "fuzzer_logger_start");
+  fuzzer_logger_end = dlsym(fuzzer_log_lib, "fuzzer_logger_end");
+
+  fuzzer_logger_start();
+
   if (afl->non_instrumented_mode || afl->fsrv.qemu_mode ||
       afl->fsrv.frida_mode || afl->fsrv.cs_mode || afl->unicorn_mode) {
 
@@ -3098,6 +3133,10 @@ stop_fuzzing:
   free(afl);                                                 /* not tracked */
 
   argv_cpy_free(argv);
+
+  /* FUZZERLOG: fuzzer log exit */
+  fuzzer_logger_end();
+  dlclose(fuzzer_log_lib);
 
   alloc_report();
 
