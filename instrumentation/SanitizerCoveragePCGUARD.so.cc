@@ -206,7 +206,8 @@ class ModuleSanitizerCoverageAFL
 
 extern "C" ::llvm::PassPluginLibraryInfo LLVM_ATTRIBUTE_WEAK
 llvmGetPassPluginInfo() {
-
+  llvm::errs() << "fuzzerlog-getblockdom: SanitizerCoveragePCGUARD.so should not be used!\n";
+  // std::abort();
   return {LLVM_PLUGIN_API_VERSION, "SanitizerCoveragePCGUARD", "v0.2",
           /* lambda to insert our pass into the pass pipeline. */
           [](PassBuilder &PB) {

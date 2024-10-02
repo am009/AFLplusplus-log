@@ -548,7 +548,7 @@ void find_built_deps(aflcc_state_t *aflcc) {
 
 #if (LLVM_MAJOR >= 3)
 
-  if ((ptr = find_object(aflcc, "SanitizerCoverageLTO.so")) != NULL) {
+  if ((ptr = find_object(aflcc, "afl-llvm-pass.so")) != NULL) {
 
     aflcc->have_lto = 1;
     ck_free(ptr);
@@ -2321,17 +2321,19 @@ void add_lto_linker(aflcc_state_t *aflcc) {
 
 /* Add params to launch SanitizerCoverageLTO.so when linking  */
 void add_lto_passes(aflcc_state_t *aflcc) {
-
-#if defined(AFL_CLANG_LDPATH) && LLVM_MAJOR >= 15
+  // fuzzerlog: Use afl-llvm-pass.so instead of PCGuard!
+  puts("Using afl-llvm-pass.so instead of PCGuard!");
+  // fuzzerlog: enable NewPM for llvm 14
+#if defined(AFL_CLANG_LDPATH) && LLVM_MAJOR >= 14
   // The NewPM implementation only works fully since LLVM 15.
-  insert_object(aflcc, "SanitizerCoverageLTO.so", "-Wl,--load-pass-plugin=%s",
+  insert_object(aflcc, "afl-llvm-pass.so", "-Wl,--load-pass-plugin=%s",
                 0);
 #elif defined(AFL_CLANG_LDPATH) && LLVM_MAJOR >= 13
   insert_param(aflcc, "-Wl,--lto-legacy-pass-manager");
-  insert_object(aflcc, "SanitizerCoverageLTO.so", "-Wl,-mllvm=-load=%s", 0);
+  insert_object(aflcc, "afl-llvm-pass.so", "-Wl,-mllvm=-load=%s", 0);
 #else
   insert_param(aflcc, "-fno-experimental-new-pass-manager");
-  insert_object(aflcc, "SanitizerCoverageLTO.so", "-Wl,-mllvm=-load=%s", 0);
+  insert_object(aflcc, "afl-llvm-pass.so", "-Wl,-mllvm=-load=%s", 0);
 #endif
 
   insert_param(aflcc, "-Wl,--allow-multiple-definition");

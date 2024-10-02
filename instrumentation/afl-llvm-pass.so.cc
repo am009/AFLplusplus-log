@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <map>
 #include <list>
 #include <string>
 #include <fstream>
@@ -75,9 +76,14 @@ typedef long double max_align_t;
 #include "afl-llvm-common.h"
 #include "llvm-alternative-coverage.h"
 
+// fuzzerlog-getblockdom: add dominator header
+#include "llvm/IR/Dominators.h"
+
 using namespace llvm;
 
 namespace {
+
+using DomTreeCallback = function_ref<const DominatorTree *(Function &F)>;
 
 #if LLVM_VERSION_MAJOR >= 11                        /* use new pass manager */
 class AFLCoverage : public PassInfoMixin<AFLCoverage> {
@@ -119,7 +125,7 @@ class AFLCoverage : public ModulePass {
 #if LLVM_VERSION_MAJOR >= 11                        /* use new pass manager */
 extern "C" ::llvm::PassPluginLibraryInfo LLVM_ATTRIBUTE_WEAK
 llvmGetPassPluginInfo() {
-
+  llvm::errs() << "fuzzerlog-getblockdom: afl-llvm-pass.so loaded!\n";
   return {LLVM_PLUGIN_API_VERSION, "AFLCoverage", "v0.1",
           /* lambda to insert our pass into the pass pipeline. */
           [](PassBuilder &PB) {
@@ -128,10 +134,10 @@ llvmGetPassPluginInfo() {
     #if LLVM_VERSION_MAJOR <= 13
             using OptimizationLevel = typename PassBuilder::OptimizationLevel;
     #endif
-    #if LLVM_VERSION_MAJOR >= 16
-            PB.registerOptimizerEarlyEPCallback(
+    #if LLVM_VERSION_MAJOR >= 15
+                PB.registerFullLinkTimeOptimizationLastEPCallback(
     #else
-            PB.registerOptimizerLastEPCallback(
+                PB.registerOptimizerLastEPCallback(
     #endif
                 [](ModulePassManager &MPM, OptimizationLevel OL) {
 
@@ -201,6 +207,8 @@ PreservedAnalyses AFLCoverage::run(Module &M, ModuleAnalysisManager &MAM) {
 #else
 bool AFLCoverage::runOnModule(Module &M) {
 
+  llvm::errs() << "fuzzerlog-getblockdom: afl-llvm-pass.so AFLCoverage::runOnModule!\n";
+
 #endif
 
   LLVMContext &C = M.getContext();
@@ -214,7 +222,8 @@ bool AFLCoverage::runOnModule(Module &M) {
   struct timeval  tv;
   struct timezone tz;
   u32             rand_seed;
-  unsigned int    cur_loc = 0;
+  unsigned int    cur_loc_inc = 5;
+  unsigned int    cur_loc = 5;
 
   /* Setup random() so we get Actually Random(TM) outputs from AFL_R() */
   gettimeofday(&tv, &tz);
@@ -380,6 +389,14 @@ bool AFLCoverage::runOnModule(Module &M) {
   PrevLocSize = 1;
 #endif
 
+  if (ctx_k || instrument_ctx || ngram_size){
+    // fuzzerlog: does not support ctx_k
+    FATAL(
+        "fuzzerlog-getblockdom: ctx_k / ngram is not supposed to be used. (llvm version "
+        "%d.%d.%d!",
+        LLVM_VERSION_MAJOR, LLVM_VERSION_MINOR, LLVM_VERSION_PATCH);
+  }
+
 #ifdef AFL_HAVE_VECTOR_INTRINSICS
   int PrevLocVecSize = PowerOf2Ceil(PrevLocSize);
   if (ngram_size)
@@ -514,6 +531,24 @@ bool AFLCoverage::runOnModule(Module &M) {
   int inst_blocks = 0;
   scanForDangerousFunctions(&M);
 
+  // open a txt for writing the dominator tree
+  char filename[] = "DomTree.XXXXXX.txt";
+  int domFd = mkstemps(filename, 4);
+  // check error
+  if (domFd == -1) {
+    FATAL("fuzzerlog-getblockdom: mkstemp failed: %s", strerror(errno));
+  }
+  puts(filename);
+  
+  std::ifstream cmdlineFile("/proc/self/cmdline");
+  std::string cmdline;
+  std::getline(cmdlineFile, cmdline);
+  cmdlineFile.close();
+  std::replace(cmdline.begin(), cmdline.end(), '\x00', ' ');
+
+  write(domFd, "# ", 2);
+  write(domFd, cmdline.c_str(), cmdline.size());
+
   for (auto &F : M) {
 
     int has_calls = 0;
@@ -525,7 +560,42 @@ bool AFLCoverage::runOnModule(Module &M) {
 
     if (F.size() < function_minimum_size) { continue; }
 
-    std::list<Value *> todo;
+    // maintain a map from basic block to its id(cur_loc).
+    std::map<BasicBlock *, unsigned int> block_id_map;
+    for (auto &BB : F) {
+      block_id_map[&BB] = cur_loc_inc;
+      cur_loc_inc++;
+      if (cur_loc_inc >= map_size) {
+        FATAL("fuzzerlog-getblockdom: Too many instrumented blocks! Please increase MAP_SIZE");
+      };
+    }
+
+
+    // get dominator tree info and print it as txt.
+#if LLVM_VERSION_MAJOR >= 11                        /* use new pass manager */
+    auto &FAM = MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
+    DominatorTree *DT = &FAM.getResult<DominatorTreeAnalysis>(F);
+#else
+    DominatorTreeWrapperPass *DTWP = &this->getAnalysis<DominatorTreeWrapperPass>(F);
+    DominatorTree *DT = &DTWP->getDomTree();    
+#endif
+
+    using GTraits = GraphTraits<DominatorTree*>;
+    // using NodeRef = typename GTraits::NodeRef;
+    using node_iterator = typename GTraits::nodes_iterator;
+    using child_iterator = typename GTraits::ChildIteratorType;
+    // For each edge in dom tree
+    for (node_iterator NI = GTraits::nodes_begin(DT), NE = GTraits::nodes_end(DT); NI != NE; ++NI) {
+      BasicBlock *BB = NI->getBlock();
+      unsigned int id = block_id_map.at(BB);
+      for (child_iterator CI = GTraits::child_begin(*NI), CE = GTraits::child_end(*NI); CI != CE; ++CI) {
+        BasicBlock *child = (*CI)->getBlock();
+        unsigned int child_id = block_id_map.at(child);
+        // dFile << id << ", " << child_id << "\n";
+        dprintf(domFd, "%u, %u\n", id, child_id);
+      }
+    }
+
     for (auto &BB : F) {
 
       BasicBlock::iterator IP = BB.getFirstInsertionPt();
@@ -630,7 +700,8 @@ bool AFLCoverage::runOnModule(Module &M) {
       /* Make up cur_loc */
 
       // cur_loc++;
-      cur_loc = AFL_R(map_size);
+      // cur_loc = AFL_R(map_size);
+      cur_loc = block_id_map.at(&BB);
 
 /* There is a problem with Ubuntu 18.04 and llvm 6.0 (see issue #63).
    The inline function successors() is not inlined and also not found at runtime
@@ -711,8 +782,10 @@ bool AFLCoverage::runOnModule(Module &M) {
 
       /* Load prev_loc */
 
-      LoadInst *PrevLoc;
+      LoadInst *PrevLoc = nullptr;
 
+    // fuzzerlog-getblockdom: we do not need prev_loc
+    if (false) {
       if (ngram_size) {
 
         PrevLoc = IRB.CreateLoad(
@@ -732,8 +805,10 @@ bool AFLCoverage::runOnModule(Module &M) {
       }
 
       PrevLoc->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
-      Value *PrevLocTrans;
-
+    }
+      Value *PrevLocTrans = nullptr;
+    // fuzzerlog-getblockdom: we do not need PrevLocTrans
+    if (false) {
 #ifdef AFL_HAVE_VECTOR_INTRINSICS
       /* "For efficiency, we propose to hash the tuple as a key into the
          hit_count map as (prev_block_trans << 1) ^ curr_block_trans, where
@@ -751,7 +826,7 @@ bool AFLCoverage::runOnModule(Module &M) {
             IRB.CreateZExt(IRB.CreateXor(PrevLocTrans, PrevCtx), Int32Ty);
       else
         PrevLocTrans = IRB.CreateZExt(PrevLocTrans, IRB.getInt32Ty());
-
+    }
       /* Load SHM pointer */
 
       LoadInst *MapPtr = IRB.CreateLoad(
@@ -762,12 +837,13 @@ bool AFLCoverage::runOnModule(Module &M) {
       MapPtr->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
 
       Value *MapPtrIdx;
+      // fuzzerlog: remove the xor operation 
 #ifdef AFL_HAVE_VECTOR_INTRINSICS
       if (ngram_size)
         MapPtrIdx = IRB.CreateGEP(
             Int8Ty, MapPtr,
             IRB.CreateZExt(
-                IRB.CreateXor(PrevLocTrans, IRB.CreateZExt(CurLoc, Int32Ty)),
+                CurLoc,
                 Int32Ty));
       else
 #endif
@@ -775,7 +851,7 @@ bool AFLCoverage::runOnModule(Module &M) {
 #if LLVM_VERSION_MAJOR >= 14
             Int8Ty,
 #endif
-            MapPtr, IRB.CreateXor(PrevLocTrans, CurLoc));
+            MapPtr, CurLoc);
 
       /* Update bitmap */
 
@@ -888,174 +964,10 @@ bool AFLCoverage::runOnModule(Module &M) {
 
     }
 
-#if 0
-    if (use_threadsafe_counters) {                       /*Atomic NeverZero */
-      // handle the list of registered blocks to instrument
-      for (auto val : todo) {
-
-        /* hexcoder: Realize a thread-safe counter that skips zero during
-         * overflow. Once this counter reaches its maximum value, it next
-         * increments to 1
-         *
-         * Instead of
-         * Counter + 1 -> Counter
-         * we inject now this
-         * Counter + 1 -> {Counter, OverflowFlag}
-         * Counter + OverflowFlag -> Counter
-         */
-
-        /* equivalent c code looks like this
-         * Thanks to
-         https://preshing.com/20150402/you-can-do-any-kind-of-atomic-read-modify-write-operation/
-
-            int old = atomic_load_explicit(&Counter, memory_order_relaxed);
-            int new;
-            do {
-
-                 if (old == 255) {
-
-                   new = 1;
-
-                 } else {
-
-                   new = old + 1;
-
-                 }
-
-            } while (!atomic_compare_exchange_weak_explicit(&Counter, &old, new,
-
-         memory_order_relaxed, memory_order_relaxed));
-
-         */
-
-        Value *              MapPtrIdx = val;
-        Instruction *        MapPtrIdxInst = cast<Instruction>(val);
-        BasicBlock::iterator it0(&(*MapPtrIdxInst));
-        ++it0;
-        IRBuilder<> IRB(&(*it0));
-
-        // load the old counter value atomically
-        LoadInst *Counter = IRB.CreateLoad(
-  #if LLVM_VERSION_MAJOR >= 14
-        IRB.getInt8Ty(),
-  #endif
-        MapPtrIdx);
-        Counter->setAlignment(llvm::Align());
-        Counter->setAtomic(llvm::AtomicOrdering::Monotonic);
-        Counter->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
-
-        BasicBlock *BB = IRB.GetInsertBlock();
-        // insert a basic block with the corpus of a do while loop
-        // the calculation may need to repeat, if atomic compare_exchange is not
-        // successful
-
-        BasicBlock::iterator it(*Counter);
-        it++;  // split after load counter
-        BasicBlock *end_bb = BB->splitBasicBlock(it);
-        end_bb->setName("injected");
-
-        // insert the block before the second half of the split
-        BasicBlock *do_while_bb =
-            BasicBlock::Create(C, "injected", end_bb->getParent(), end_bb);
-
-        // set terminator of BB from target end_bb to target do_while_bb
-        auto term = BB->getTerminator();
-        BranchInst::Create(do_while_bb, BB);
-        term->eraseFromParent();
-
-        // continue to fill instructions into the do_while loop
-        IRB.SetInsertPoint(do_while_bb, do_while_bb->getFirstInsertionPt());
-
-        PHINode *PN = IRB.CreatePHI(Int8Ty, 2);
-
-        // compare with maximum value 0xff
-        auto *Cmp = IRB.CreateICmpEQ(Counter, ConstantInt::get(Int8Ty, -1));
-
-        // increment the counter
-        Value *Incr = IRB.CreateAdd(Counter, One);
-
-        // select the counter value or 1
-        auto *Select = IRB.CreateSelect(Cmp, One, Incr);
-
-        // try to save back the new counter value
-        auto *CmpXchg = IRB.CreateAtomicCmpXchg(
-            MapPtrIdx, PN, Select, llvm::AtomicOrdering::Monotonic,
-            llvm::AtomicOrdering::Monotonic);
-        CmpXchg->setAlignment(llvm::Align());
-        CmpXchg->setWeak(true);
-        CmpXchg->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
-
-        // get the result of trying to update the Counter
-        Value *Success =
-            IRB.CreateExtractValue(CmpXchg, ArrayRef<unsigned>({1}));
-        // get the (possibly updated) value of Counter
-        Value *OldVal =
-            IRB.CreateExtractValue(CmpXchg, ArrayRef<unsigned>({0}));
-
-        // initially we use Counter
-        PN->addIncoming(Counter, BB);
-        // on retry, we use the updated value
-        PN->addIncoming(OldVal, do_while_bb);
-
-        // if the cmpXchg was not successful, retry
-        IRB.CreateCondBr(Success, end_bb, do_while_bb);
-
-      }
-
-    }
-
-#endif
-
   }
 
-  /*
-    // This is currently disabled because we not only need to create/insert a
-    // function (easy), but also add it as a constructor with an ID < 5
-
-    if (getenv("AFL_LLVM_DONTWRITEID") == NULL) {
-
-      // yes we could create our own function, insert it into ctors ...
-      // but this would be a pain in the butt ... so we use afl-llvm-rt.o
-
-      Function *f = ...
-
-      if (!f) {
-
-        fprintf(stderr,
-                "Error: init function could not be created (this should not
-    happen)\n"); exit(-1);
-
-      }
-
-      ... constructor for f = 4
-
-      BasicBlock *bb = &f->getEntryBlock();
-      if (!bb) {
-
-        fprintf(stderr,
-                "Error: init function does not have an EntryBlock (this should
-    not happen)\n"); exit(-1);
-
-      }
-
-      BasicBlock::iterator IP = bb->getFirstInsertionPt();
-      IRBuilder<>          IRB(&(*IP));
-
-      if (map_size <= 0x800000) {
-
-        GlobalVariable *AFLFinalLoc = new GlobalVariable(
-            M, Int32Ty, true, GlobalValue::ExternalLinkage, 0,
-            "__afl_final_loc");
-        ConstantInt *const_loc = ConstantInt::get(Int32Ty, map_size);
-        StoreInst *  StoreFinalLoc = IRB.CreateStore(const_loc, AFLFinalLoc);
-        StoreFinalLoc->setMetadata(M.getMDKindID("nosanitize"),
-                                     MDNode::get(C, None));
-
-      }
-
-    }
-
-  */
+  // close the file
+  close(domFd);
 
   /* Say something nice. */
 

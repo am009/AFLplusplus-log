@@ -332,7 +332,8 @@ class ModuleSanitizerCoverageLTOLegacyPass : public ModulePass {
 
 extern "C" ::llvm::PassPluginLibraryInfo LLVM_ATTRIBUTE_WEAK
 llvmGetPassPluginInfo() {
-
+  std::cerr << "fuzzerlog-getblockdom: SanitizerCoverageLTO.so should not be used!" << std::endl;
+  // std::abort();
   return {LLVM_PLUGIN_API_VERSION, "SanitizerCoverageLTO", "v0.1",
           /* lambda to insert our pass into the pass pipeline. */
           [](PassBuilder &PB) {

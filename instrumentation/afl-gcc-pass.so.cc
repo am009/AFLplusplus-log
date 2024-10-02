@@ -229,7 +229,8 @@ struct afl_pass : afl_base_pass {
         auto conv_ploc =
             gimple_build_assign(indx, fold_convert(TREE_TYPE(indx), ploc));
         gimple_seq_add_stmt(&seq, conv_ploc);
-        auto xor_loc = gimple_build_assign(indx, BIT_XOR_EXPR, indx, bidt);
+        // fuzzerlog: removed the xor operation.
+        auto xor_loc = gimple_build_assign(indx, bidt);
         gimple_seq_add_stmt(&seq, xor_loc);
 
         /* Compute the address of that map element.  */
