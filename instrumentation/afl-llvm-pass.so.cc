@@ -532,13 +532,21 @@ bool AFLCoverage::runOnModule(Module &M) {
   scanForDangerousFunctions(&M);
 
   // open a txt for writing the dominator tree
-  char filename[] = "DomTree.XXXXXX.txt";
-  int domFd = mkstemps(filename, 4);
+  std::string filename = "DomTree.XXXXXX.txt";
+  char* dir = std::getenv("FUZZERLOG_DOMTREE_DIR");
+  if (dir) {
+    std::string sdir = std::string(dir);
+    if (sdir.back() != '/') {
+      sdir.push_back('/');
+    }
+    filename = sdir + filename;
+  }
+  int domFd = mkstemps(const_cast<char*>(filename.c_str()), 4);
   // check error
   if (domFd == -1) {
     FATAL("fuzzerlog-getblockdom: mkstemp failed: %s", strerror(errno));
   }
-  puts(filename);
+  puts(filename.c_str());
   
   std::ifstream cmdlineFile("/proc/self/cmdline");
   std::string cmdline;
