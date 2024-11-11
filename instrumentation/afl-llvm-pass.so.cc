@@ -78,6 +78,8 @@ typedef long double max_align_t;
 
 // fuzzerlog-getblockdom: add dominator header
 #include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/CallGraph.h"
+#include "llvm/Support/GraphWriter.h"
 
 using namespace llvm;
 
@@ -547,6 +549,19 @@ bool AFLCoverage::runOnModule(Module &M) {
     FATAL("fuzzerlog-getblockdom: mkstemp failed: %s", strerror(errno));
   }
   puts(filename.c_str());
+
+  std::string CallGraphFile = "CallGraph" + filename.substr(filename.size() - 11, 8) + ".dot";
+  // Write Call graph 
+  // llvm::CallGraph &CG = getAnalysis<llvm::CallGraphWrapperPass>().getCallGraph();
+  CallGraph &CG = MAM.getResult<CallGraphAnalysis>(M);
+  std::error_code EC;
+  llvm::raw_fd_ostream OutStream(CallGraphFile, EC);
+  if (EC) {
+    llvm::errs() << "Error: " << EC.message() << "\n";
+  }
+  llvm::WriteGraph(OutStream, &CG, false);
+  OutStream.flush();
+  OutStream.close();
   
   std::ifstream cmdlineFile("/proc/self/cmdline");
   std::string cmdline;
