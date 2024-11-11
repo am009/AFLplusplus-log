@@ -78,8 +78,171 @@ typedef long double max_align_t;
 
 // fuzzerlog-getblockdom: add dominator header
 #include "llvm/IR/Dominators.h"
+#include "llvm/ADT/SmallSet.h"
+#include "llvm/Analysis/BlockFrequencyInfo.h"
+#include "llvm/Analysis/HeatUtils.h"
 #include "llvm/Analysis/CallGraph.h"
 #include "llvm/Support/GraphWriter.h"
+
+
+namespace llvm {
+class CallGraphDOTInfo {
+private:
+  Module *M;
+  CallGraph *CG;
+  DenseMap<const Function *, uint64_t> Freq;
+  uint64_t MaxFreq;
+
+public:
+  std::function<BlockFrequencyInfo *(Function &)> LookupBFI;
+
+  CallGraphDOTInfo(Module *M, CallGraph *CG,
+                   function_ref<BlockFrequencyInfo *(Function &)> LookupBFI)
+      : M(M), CG(CG), LookupBFI(LookupBFI) {
+    MaxFreq = 0;
+
+    for (Function &F : M->getFunctionList()) {
+      uint64_t localSumFreq = 0;
+      SmallSet<Function *, 16> Callers;
+      for (User *U : F.users())
+        if (isa<CallInst>(U))
+          Callers.insert(cast<Instruction>(U)->getFunction());
+      for (Function *Caller : Callers)
+        localSumFreq += getNumOfCalls(*Caller, F);
+      if (localSumFreq >= MaxFreq)
+        MaxFreq = localSumFreq;
+      Freq[&F] = localSumFreq;
+    }
+    removeParallelEdges();
+  }
+
+  Module *getModule() const { return M; }
+
+  CallGraph *getCallGraph() const { return CG; }
+
+  uint64_t getFreq(const Function *F) { return Freq[F]; }
+
+  uint64_t getMaxFreq() { return MaxFreq; }
+
+private:
+  void removeParallelEdges() {
+    for (auto &I : (*CG)) {
+      CallGraphNode *Node = I.second.get();
+
+      bool FoundParallelEdge = true;
+      while (FoundParallelEdge) {
+        SmallSet<Function *, 16> Visited;
+        FoundParallelEdge = false;
+        for (auto CI = Node->begin(), CE = Node->end(); CI != CE; CI++) {
+          if (!(Visited.insert(CI->second->getFunction())).second) {
+            FoundParallelEdge = true;
+            Node->removeCallEdge(CI);
+            break;
+          }
+        }
+      }
+    }
+  }
+};
+
+const bool CallMultiGraph = false;
+const bool ShowEdgeWeight = true;
+const bool ShowHeatColors = false;
+template <>
+struct GraphTraits<CallGraphDOTInfo *>
+    : public GraphTraits<const CallGraphNode *> {
+  static NodeRef getEntryNode(CallGraphDOTInfo *CGInfo) {
+    // Start at the external node!
+    return CGInfo->getCallGraph()->getExternalCallingNode();
+  }
+
+  typedef std::pair<const Function *const, std::unique_ptr<CallGraphNode>>
+      PairTy;
+  static const CallGraphNode *CGGetValuePtr(const PairTy &P) {
+    return P.second.get();
+  }
+
+  // nodes_iterator/begin/end - Allow iteration over all nodes in the graph
+  typedef mapped_iterator<CallGraph::const_iterator, decltype(&CGGetValuePtr)>
+      nodes_iterator;
+
+  static nodes_iterator nodes_begin(CallGraphDOTInfo *CGInfo) {
+    return nodes_iterator(CGInfo->getCallGraph()->begin(), &CGGetValuePtr);
+  }
+  static nodes_iterator nodes_end(CallGraphDOTInfo *CGInfo) {
+    return nodes_iterator(CGInfo->getCallGraph()->end(), &CGGetValuePtr);
+  }
+};
+
+template <>
+struct DOTGraphTraits<CallGraphDOTInfo *> : public DefaultDOTGraphTraits {
+
+  DOTGraphTraits(bool isSimple = false) : DefaultDOTGraphTraits(isSimple) {}
+
+  static std::string getGraphName(CallGraphDOTInfo *CGInfo) {
+    return "Call graph: " +
+           std::string(CGInfo->getModule()->getModuleIdentifier());
+  }
+
+  static bool isNodeHidden(const CallGraphNode *Node,
+                           const CallGraphDOTInfo *CGInfo) {
+    if (CallMultiGraph || Node->getFunction())
+      return false;
+    return true;
+  }
+
+  std::string getNodeLabel(const CallGraphNode *Node,
+                           CallGraphDOTInfo *CGInfo) {
+    if (Node == CGInfo->getCallGraph()->getExternalCallingNode())
+      return "external caller";
+    if (Node == CGInfo->getCallGraph()->getCallsExternalNode())
+      return "external callee";
+
+    if (Function *Func = Node->getFunction())
+      return std::string(Func->getName());
+    return "external node";
+  }
+  static const CallGraphNode *CGGetValuePtr(CallGraphNode::CallRecord P) {
+    return P.second;
+  }
+
+  // nodes_iterator/begin/end - Allow iteration over all nodes in the graph
+  typedef mapped_iterator<CallGraphNode::const_iterator,
+                          decltype(&CGGetValuePtr)>
+      nodes_iterator;
+
+  std::string getEdgeAttributes(const CallGraphNode *Node, nodes_iterator I,
+                                CallGraphDOTInfo *CGInfo) {
+    if (!ShowEdgeWeight)
+      return "";
+
+    Function *Caller = Node->getFunction();
+    if (Caller == nullptr || Caller->isDeclaration())
+      return "";
+
+    Function *Callee = (*I)->getFunction();
+    if (Callee == nullptr)
+      return "";
+
+    uint64_t Counter = getNumOfCalls(*Caller, *Callee);
+    double Width =
+        1 + 2 * (double(Counter) / CGInfo->getMaxFreq());
+    std::string Attrs = "label=\"" + std::to_string(Counter) +
+                        "\" penwidth=" + std::to_string(Width);
+    return Attrs;
+  }
+
+  std::string getNodeAttributes(const CallGraphNode *Node,
+                                CallGraphDOTInfo *CGInfo) {
+    Function *F = Node->getFunction();
+    if (F == nullptr)
+      return "";
+    std::string attrs;
+    return attrs;
+  }
+};
+
+}
 
 using namespace llvm;
 
@@ -205,6 +368,9 @@ uint64_t PowerOf2Ceil(unsigned in) {
 
 #if LLVM_VERSION_MAJOR >= 11                        /* use new pass manager */
 PreservedAnalyses AFLCoverage::run(Module &M, ModuleAnalysisManager &MAM) {
+
+FunctionAnalysisManager &FAM =
+      MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
 
 #else
 bool AFLCoverage::runOnModule(Module &M) {
@@ -533,14 +699,18 @@ bool AFLCoverage::runOnModule(Module &M) {
   int inst_blocks = 0;
   scanForDangerousFunctions(&M);
 
-  // open a txt for writing the dominator tree
-  std::string filename = "DomTree.XXXXXX.txt";
   char* dir = std::getenv("FUZZERLOG_DOMTREE_DIR");
+  std::string sdir;
   if (dir) {
-    std::string sdir = std::string(dir);
+    sdir = std::string(dir);
     if (sdir.back() != '/') {
       sdir.push_back('/');
     }
+  }
+
+  // open a txt for writing the dominator tree
+  std::string filename = "DomTree.XXXXXX.txt";
+  if (sdir.size() > 0) {
     filename = sdir + filename;
   }
   int domFd = mkstemps(const_cast<char*>(filename.c_str()), 4);
@@ -548,20 +718,50 @@ bool AFLCoverage::runOnModule(Module &M) {
   if (domFd == -1) {
     FATAL("fuzzerlog-getblockdom: mkstemp failed: %s", strerror(errno));
   }
+  puts("fuzzerlog-getblockdom: ");
   puts(filename.c_str());
 
-  std::string CallGraphFile = "CallGraph" + filename.substr(filename.size() - 11, 8) + ".dot";
+  std::function<BlockFrequencyInfo *(Function &)> LookupBFI = 
+  // [this](Function &F) {
+  //   return &this->getAnalysis<BlockFrequencyInfoWrapperPass>(F).getBFI();
+  // };
+  [&FAM](Function &F) {
+    return &FAM.getResult<BlockFrequencyAnalysis>(F);
+  };
+
+  std::string CallGraphFile = "CallGraph" + filename.substr(filename.size() - 11, 8) + "dot";
+  if (sdir.size() > 0) {
+    CallGraphFile = sdir + CallGraphFile;
+  }
+  puts(CallGraphFile.c_str());
   // Write Call graph 
   // llvm::CallGraph &CG = getAnalysis<llvm::CallGraphWrapperPass>().getCallGraph();
   CallGraph &CG = MAM.getResult<CallGraphAnalysis>(M);
+  CallGraphDOTInfo CFGInfo(&M, &CG, LookupBFI);
   std::error_code EC;
   llvm::raw_fd_ostream OutStream(CallGraphFile, EC);
   if (EC) {
     llvm::errs() << "Error: " << EC.message() << "\n";
   }
-  llvm::WriteGraph(OutStream, &CG, false);
+  llvm::WriteGraph(OutStream, &CFGInfo);
   OutStream.flush();
   OutStream.close();
+
+  // print module for debugging
+  if (std::getenv("FUZZERLOG_PRINT_MODULE")) {
+    std::string ModuleFile = "Module"  + filename.substr(filename.size() - 11, 8) + "ll";
+    if (sdir.size() > 0) {
+      ModuleFile = sdir + ModuleFile;
+    }
+    std::error_code EC;
+    llvm::raw_fd_ostream OS2(ModuleFile, EC);
+    if (EC) {
+      llvm::errs() << "Error: " << EC.message() << "\n";
+    }
+    M.print(OS2, nullptr);
+    OS2.flush();
+    OS2.close();
+  }
   
   std::ifstream cmdlineFile("/proc/self/cmdline");
   std::string cmdline;
