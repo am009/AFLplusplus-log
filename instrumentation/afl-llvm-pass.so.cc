@@ -360,6 +360,20 @@ uint64_t PowerOf2Ceil(unsigned in) {
 
 #endif
 
+std::string getSourceInfo(BasicBlock& BB) {
+  std::string Ret = "None";
+  for (auto& I: BB) {
+    if (DILocation *Loc = I.getDebugLoc()){
+      StringRef File = Loc->getFilename();
+      unsigned  Line = Loc->getLine();
+      StringRef Dir = Loc->getDirectory();
+      Ret = Dir.str() + File.str() + ":" + std::to_string(Line);
+      break;
+    }
+  }
+  return Ret;
+}
+
 /* #if LLVM_VERSION_STRING >= "4.0.1" */
 #if LLVM_VERSION_MAJOR >= 5 || \
     (LLVM_VERSION_MAJOR == 4 && LLVM_VERSION_PATCH >= 1)
@@ -721,6 +735,16 @@ bool AFLCoverage::runOnModule(Module &M) {
   puts("fuzzerlog-getblockdom: ");
   puts(filename.c_str());
 
+  std::string BlockInfoFile = "BlockInfo" + filename.substr(filename.size() - 11, 8) + "dot";
+  if (sdir.size() > 0) {
+    BlockInfoFile = sdir + BlockInfoFile;
+  }
+  std::error_code EC1;
+  llvm::raw_fd_ostream BlockInfoStream(BlockInfoFile, EC1);
+  if (EC1) {
+    llvm::errs() << "Error: " << EC1.message() << "\n";
+  }
+
   std::function<BlockFrequencyInfo *(Function &)> LookupBFI = 
   // [this](Function &F) {
   //   return &this->getAnalysis<BlockFrequencyInfoWrapperPass>(F).getBFI();
@@ -738,10 +762,10 @@ bool AFLCoverage::runOnModule(Module &M) {
   // llvm::CallGraph &CG = getAnalysis<llvm::CallGraphWrapperPass>().getCallGraph();
   CallGraph &CG = MAM.getResult<CallGraphAnalysis>(M);
   CallGraphDOTInfo CFGInfo(&M, &CG, LookupBFI);
-  std::error_code EC;
-  llvm::raw_fd_ostream OutStream(CallGraphFile, EC);
-  if (EC) {
-    llvm::errs() << "Error: " << EC.message() << "\n";
+  std::error_code EC2;
+  llvm::raw_fd_ostream OutStream(CallGraphFile, EC2);
+  if (EC2) {
+    llvm::errs() << "Error: " << EC2.message() << "\n";
   }
   llvm::WriteGraph(OutStream, &CFGInfo);
   OutStream.flush();
@@ -823,6 +847,10 @@ bool AFLCoverage::runOnModule(Module &M) {
 
       BasicBlock::iterator IP = BB.getFirstInsertionPt();
       IRBuilder<>          IRB(&(*IP));
+
+      // Output block info: block id, function name, and source location.
+      BlockInfoStream << block_id_map.at(&BB) << ","
+                      << F.getName().str() << "," << getSourceInfo(BB) << "\n";
 
       // Context sensitive coverage
       if (instrument_ctx && &BB == &F.getEntryBlock()) {
@@ -1191,6 +1219,21 @@ bool AFLCoverage::runOnModule(Module &M) {
 
   // close the file
   close(domFd);
+  // print module again
+  if (std::getenv("FUZZERLOG_PRINT_MODULE_AFTER")) {
+    std::string ModuleFile = "ModuleAfter"  + filename.substr(filename.size() - 11, 8) + "ll";
+    if (sdir.size() > 0) {
+      ModuleFile = sdir + ModuleFile;
+    }
+    std::error_code EC;
+    llvm::raw_fd_ostream OS2(ModuleFile, EC);
+    if (EC) {
+      llvm::errs() << "Error: " << EC.message() << "\n";
+    }
+    M.print(OS2, nullptr);
+    OS2.flush();
+    OS2.close();
+  }
 
   /* Say something nice. */
 
