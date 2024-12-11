@@ -10,4 +10,4 @@
 # NO_NYX=1 bear -- make source-only
 
 # AFL_DEBUG=1 
-NO_NYX=1 make source-only # && sudo make install
+NO_NYX=1 AFL_NO_X86=1 make source-only # && sudo make install

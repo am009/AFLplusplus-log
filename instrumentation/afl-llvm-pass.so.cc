@@ -367,7 +367,7 @@ std::string getSourceInfo(BasicBlock& BB) {
       StringRef File = Loc->getFilename();
       unsigned  Line = Loc->getLine();
       StringRef Dir = Loc->getDirectory();
-      Ret = Dir.str() + File.str() + ":" + std::to_string(Line);
+      Ret = Dir.str() + ((Dir.str().back() == '/') ? "" : "/") + File.str() + ":" + std::to_string(Line);
       break;
     }
   }
@@ -813,7 +813,7 @@ bool AFLCoverage::runOnModule(Module &M) {
       block_id_map[&BB] = cur_loc_inc;
       cur_loc_inc++;
       if (cur_loc_inc >= map_size) {
-        FATAL("fuzzerlog-getblockdom: Too many instrumented blocks! Please increase MAP_SIZE");
+        FATAL("fuzzerlog-getblockdom: Too many instrumented blocks! Please increase MAP_SIZE (%u)", map_size);
       };
     }
 
