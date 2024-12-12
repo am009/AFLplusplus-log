@@ -362,8 +362,17 @@ uint64_t PowerOf2Ceil(unsigned in) {
 
 std::string getSourceInfo(BasicBlock& BB) {
   std::string Ret = "None";
+  BB.getFirstNonPHIOrDbgOrLifetime();
   for (auto& I: BB) {
     if (DILocation *Loc = I.getDebugLoc()){
+      if (isa<PHINode>(I) || isa<DbgInfoIntrinsic>(I))
+        continue;
+
+      if (I.isLifetimeStartOrEnd())
+        continue;
+
+      if (isa<PseudoProbeInst>(I))
+        continue;
       StringRef File = Loc->getFilename();
       unsigned  Line = Loc->getLine();
       StringRef Dir = Loc->getDirectory();
@@ -735,7 +744,7 @@ bool AFLCoverage::runOnModule(Module &M) {
   puts("fuzzerlog-getblockdom: ");
   puts(filename.c_str());
 
-  std::string BlockInfoFile = "BlockInfo" + filename.substr(filename.size() - 11, 8) + "dot";
+  std::string BlockInfoFile = "BlockInfo" + filename.substr(filename.size() - 11, 8) + "txt";
   if (sdir.size() > 0) {
     BlockInfoFile = sdir + BlockInfoFile;
   }
@@ -795,6 +804,7 @@ bool AFLCoverage::runOnModule(Module &M) {
 
   write(domFd, "# ", 2);
   write(domFd, cmdline.c_str(), cmdline.size());
+  write(domFd, "\n", 1);
 
   for (auto &F : M) {
 
@@ -954,73 +964,73 @@ bool AFLCoverage::runOnModule(Module &M) {
       // cur_loc = AFL_R(map_size);
       cur_loc = block_id_map.at(&BB);
 
-/* There is a problem with Ubuntu 18.04 and llvm 6.0 (see issue #63).
-   The inline function successors() is not inlined and also not found at runtime
-   :-( As I am unable to detect Ubuntu18.04 here, the next best thing is to
-   disable this optional optimization for LLVM 6.0.0 and Linux */
-#if !(LLVM_VERSION_MAJOR == 6 && LLVM_VERSION_MINOR == 0) || !defined __linux__
-      // only instrument if this basic block is the destination of a previous
-      // basic block that has multiple successors
-      // this gets rid of ~5-10% of instrumentations that are unnecessary
-      // result: a little more speed and less map pollution
-      int more_than_one = -1;
-      // fprintf(stderr, "BB %u: ", cur_loc);
-      for (pred_iterator PI = pred_begin(&BB), E = pred_end(&BB); PI != E;
-           ++PI) {
+// /* There is a problem with Ubuntu 18.04 and llvm 6.0 (see issue #63).
+//    The inline function successors() is not inlined and also not found at runtime
+//    :-( As I am unable to detect Ubuntu18.04 here, the next best thing is to
+//    disable this optional optimization for LLVM 6.0.0 and Linux */
+// #if !(LLVM_VERSION_MAJOR == 6 && LLVM_VERSION_MINOR == 0) || !defined __linux__
+//       // only instrument if this basic block is the destination of a previous
+//       // basic block that has multiple successors
+//       // this gets rid of ~5-10% of instrumentations that are unnecessary
+//       // result: a little more speed and less map pollution
+//       int more_than_one = -1;
+//       // fprintf(stderr, "BB %u: ", cur_loc);
+//       for (pred_iterator PI = pred_begin(&BB), E = pred_end(&BB); PI != E;
+//            ++PI) {
 
-        BasicBlock *Pred = *PI;
+//         BasicBlock *Pred = *PI;
 
-        int count = 0;
-        if (more_than_one == -1) more_than_one = 0;
-        // fprintf(stderr, " %p=>", Pred);
+//         int count = 0;
+//         if (more_than_one == -1) more_than_one = 0;
+//         // fprintf(stderr, " %p=>", Pred);
 
-        for (succ_iterator SI = succ_begin(Pred), E = succ_end(Pred); SI != E;
-             ++SI) {
+//         for (succ_iterator SI = succ_begin(Pred), E = succ_end(Pred); SI != E;
+//              ++SI) {
 
-          BasicBlock *Succ = *SI;
+//           BasicBlock *Succ = *SI;
 
-          // if (count > 0)
-          //  fprintf(stderr, "|");
-          if (Succ != NULL) count++;
-          // fprintf(stderr, "%p", Succ);
+//           // if (count > 0)
+//           //  fprintf(stderr, "|");
+//           if (Succ != NULL) count++;
+//           // fprintf(stderr, "%p", Succ);
 
-        }
+//         }
 
-        if (count > 1) more_than_one = 1;
+//         if (count > 1) more_than_one = 1;
 
-      }
+//       }
 
-      // fprintf(stderr, " == %d\n", more_than_one);
-      if (F.size() > 1 && more_than_one != 1) {
+//       // fprintf(stderr, " == %d\n", more_than_one);
+//       if (F.size() > 1 && more_than_one != 1) {
 
-        // in CTX mode we have to restore the original context for the caller -
-        // she might be calling other functions which need the correct CTX
-        if (instrument_ctx && has_calls) {
+//         // in CTX mode we have to restore the original context for the caller -
+//         // she might be calling other functions which need the correct CTX
+//         if (instrument_ctx && has_calls) {
 
-          Instruction *Inst = BB.getTerminator();
-          if (isa<ReturnInst>(Inst) || isa<ResumeInst>(Inst)) {
+//           Instruction *Inst = BB.getTerminator();
+//           if (isa<ReturnInst>(Inst) || isa<ResumeInst>(Inst)) {
 
-            IRBuilder<> Post_IRB(Inst);
+//             IRBuilder<> Post_IRB(Inst);
 
-            StoreInst *RestoreCtx;
-  #ifdef AFL_HAVE_VECTOR_INTRINSICS
-            if (ctx_k)
-              RestoreCtx = IRB.CreateStore(PrevCaller, AFLPrevCaller);
-            else
-  #endif
-              RestoreCtx = Post_IRB.CreateStore(PrevCtx, AFLContext);
-            RestoreCtx->setMetadata(M.getMDKindID("nosanitize"),
-                                    MDNode::get(C, None));
+//             StoreInst *RestoreCtx;
+//   #ifdef AFL_HAVE_VECTOR_INTRINSICS
+//             if (ctx_k)
+//               RestoreCtx = IRB.CreateStore(PrevCaller, AFLPrevCaller);
+//             else
+//   #endif
+//               RestoreCtx = Post_IRB.CreateStore(PrevCtx, AFLContext);
+//             RestoreCtx->setMetadata(M.getMDKindID("nosanitize"),
+//                                     MDNode::get(C, None));
 
-          }
+//           }
 
-        }
+//         }
 
-        continue;
+//         continue;
 
-      }
+//       }
 
-#endif
+// #endif
 
       ConstantInt *CurLoc;
 
