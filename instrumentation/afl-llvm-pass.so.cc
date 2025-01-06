@@ -360,11 +360,9 @@ uint64_t PowerOf2Ceil(unsigned in) {
 
 #endif
 
-std::string getSourceInfo(BasicBlock& BB) {
-  std::string Ret = "None";
+std::set<std::string> getSourceInfo(BasicBlock& BB) {
+  std::set<std::string> Ret;
   BB.getFirstNonPHIOrDbgOrLifetime();
-  // count the number of occurrences of each file, and its first location.
-  std::map<std::pair<StringRef, StringRef>, std::pair<long, std::string>> Locs;
   for (auto& I: BB) {
     if (DILocation *Loc = I.getDebugLoc()){
       if (isa<PHINode>(I) || isa<DbgInfoIntrinsic>(I))
@@ -377,22 +375,11 @@ std::string getSourceInfo(BasicBlock& BB) {
         continue;
       StringRef File = Loc->getFilename();
       StringRef Dir = Loc->getDirectory();
-      if (Locs.count({Dir, File})) {
-        Locs[{Dir, File}].first++;
-      } else {
-        unsigned Line = Loc->getLine();
-        std::string DirStr = Dir.str();
-        std::string Full = DirStr + ((DirStr.back() == '/') ? "" : "/") + File.str() + ":" + std::to_string(Line);
-        Locs.insert({{Dir, File}, {1, Full}});
-      }
-      break;
-    }
-  }
-  long MaxCount = 0;
-  for(auto& Ent : Locs) {
-    if (Ent.second.first > MaxCount) {
-      MaxCount = Ent.second.first;
-      Ret = Ent.second.second;
+
+      unsigned Line = Loc->getLine();
+      std::string DirStr = Dir.str();
+      std::string Full = DirStr + ((DirStr.back() == '/') ? "" : "/") + File.str() + ":" + std::to_string(Line);
+      Ret.insert(Full);
     }
   }
   return Ret;
@@ -835,8 +822,8 @@ bool AFLCoverage::runOnModule(Module &M) {
     // maintain a map from basic block to its id(cur_loc).
     std::map<BasicBlock *, unsigned int> block_id_map;
     for (auto &BB : F) {
-      printf("Instrumenting for Block %d", cur_loc_inc);
-      llvm::errs() << BB;
+      // printf("Instrumenting for Block %d", cur_loc_inc);
+      // llvm::errs() << BB;
       block_id_map[&BB] = cur_loc_inc;
       cur_loc_inc++;
       if (cur_loc_inc >= map_size) {
@@ -875,9 +862,13 @@ bool AFLCoverage::runOnModule(Module &M) {
       BasicBlock::iterator IP = BB.getFirstInsertionPt();
       IRBuilder<>          IRB(&(*IP));
 
-      // Output block info: block id, function name, and source location.
       BlockInfoStream << block_id_map.at(&BB) << ","
-                      << F.getName().str() << "," << getSourceInfo(BB) << "\n";
+                        << F.getName().str();
+      // Output block info: block id, function name, and source location.
+      for (auto& Loc: getSourceInfo(BB)) {
+        BlockInfoStream << "," << Loc;
+      }
+      BlockInfoStream << "\n";
 
       // Context sensitive coverage
       if (instrument_ctx && &BB == &F.getEntryBlock()) {
