@@ -76,7 +76,7 @@ namespace {
 class AFLdict2filePass : public PassInfoMixin<AFLdict2filePass> {
 
   std::ofstream of;
-  void          dict2file(u8 *, u32);
+  void          dict2file(u8 *, u32, const char*);
 
  public:
   AFLdict2filePass() {
@@ -135,7 +135,7 @@ llvmGetPassPluginInfo() {
 char AFLdict2filePass::ID = 0;
 #endif
 
-void AFLdict2filePass::dict2file(u8 *mem, u32 len) {
+void AFLdict2filePass::dict2file(u8 *mem, u32 len, const char* name) {
 
   u32  i, j, binary = 0;
   char line[MAX_AUTO_EXTRA * 8], tmp[8];
@@ -167,6 +167,10 @@ void AFLdict2filePass::dict2file(u8 *mem, u32 len) {
 
   line[j] = 0;
   strcat(line, "\"\n");
+  if (name) {
+    of << name;
+    of << "=";
+  }
   of << line;
   of.flush();
 
@@ -345,11 +349,11 @@ bool AFLdict2filePass::runOnModule(Module &M) {
 
               }
 
-              dict2file((u8 *)&val, len);
+              dict2file((u8 *)&val, len, "cmp1@1");
               found++;
               if (val2) {
 
-                dict2file((u8 *)&val2, len);
+                dict2file((u8 *)&val2, len, "cmp2@1");
                 found++;
 
               }
@@ -718,7 +722,7 @@ bool AFLdict2filePass::runOnModule(Module &M) {
 
           ptr = (char *)thestring.c_str();
 
-          dict2file((u8 *)ptr, optLen);
+          dict2file((u8 *)ptr, optLen, "call");
           found++;
 
         }

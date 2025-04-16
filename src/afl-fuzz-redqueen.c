@@ -2146,17 +2146,17 @@ static u8 cmp_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
 
 #endif
         {
-
-          if (!memcmp((u8 *)&o->v0, (u8 *)&orig_o->v0, SHAPE_BYTES(h->shape)) &&
-              (!found_one ||
-               check_if_text_buf((u8 *)&o->v0, SHAPE_BYTES(h->shape)) ==
-                   SHAPE_BYTES(h->shape)))
-            try_to_add_to_dict(afl, o->v0, SHAPE_BYTES(h->shape));
-          if (!memcmp((u8 *)&o->v1, (u8 *)&orig_o->v1, SHAPE_BYTES(h->shape)) &&
-              (!found_one ||
-               check_if_text_buf((u8 *)&o->v1, SHAPE_BYTES(h->shape)) ==
-                   SHAPE_BYTES(h->shape)))
-            try_to_add_to_dict(afl, o->v1, SHAPE_BYTES(h->shape));
+          (void)try_to_add_to_dict;
+          // if (!memcmp((u8 *)&o->v0, (u8 *)&orig_o->v0, SHAPE_BYTES(h->shape)) &&
+          //     (!found_one ||
+          //      check_if_text_buf((u8 *)&o->v0, SHAPE_BYTES(h->shape)) ==
+          //          SHAPE_BYTES(h->shape)))
+          //   try_to_add_to_dict(afl, o->v0, SHAPE_BYTES(h->shape));
+          // if (!memcmp((u8 *)&o->v1, (u8 *)&orig_o->v1, SHAPE_BYTES(h->shape)) &&
+          //     (!found_one ||
+          //      check_if_text_buf((u8 *)&o->v1, SHAPE_BYTES(h->shape)) ==
+          //          SHAPE_BYTES(h->shape)))
+          //   try_to_add_to_dict(afl, o->v1, SHAPE_BYTES(h->shape));
 
         }
 
@@ -2841,6 +2841,7 @@ static u8 rtn_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
       fprintf(stderr, "\n");
 #endif
 
+      // right log entry is input
       if (unlikely(rtn_extend_encoding(afl, 0, o, orig_o, idx, taint_len,
                                        orig_buf, buf, cbuf, len, lvl,
                                        &status))) {
@@ -2858,6 +2859,7 @@ static u8 rtn_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
 
       status = 0;
 
+      // left log entry is input
       if (unlikely(rtn_extend_encoding(afl, 1, o, orig_o, idx, taint_len,
                                        orig_buf, buf, cbuf, len, lvl,
                                        &status))) {
@@ -2882,18 +2884,18 @@ static u8 rtn_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
       // if (unlikely(!afl->pass_stats[key].total)) {
 
       u32 shape_len = SHAPE_BYTES(h->shape);
-      u32 v0_len = shape_len, v1_len = shape_len;
+      // u32 v0_len = shape_len, v1_len = shape_len;
       if (afl->queue_cur->is_ascii ||
           check_if_text_buf((u8 *)&o->v0, shape_len) == shape_len) {
 
-        if (strlen(o->v0)) v0_len = strlen(o->v0);
+        // if (strlen(o->v0)) v0_len = strlen(o->v0);
 
       }
 
       if (afl->queue_cur->is_ascii ||
           check_if_text_buf((u8 *)&o->v1, shape_len) == shape_len) {
 
-        if (strlen(o->v1)) v1_len = strlen(o->v1);
+        // if (strlen(o->v1)) v1_len = strlen(o->v1);
 
       }
 
@@ -2904,12 +2906,12 @@ static u8 rtn_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
 
       // Note that this check differs from the line 1901, for RTN we are more
       // opportunistic for adding to the dictionary than cmps
-      if (!memcmp(o->v0, orig_o->v0, v0_len) ||
-          (!found_one || check_if_text_buf((u8 *)&o->v0, v0_len) == v0_len))
-        maybe_add_auto(afl, o->v0, v0_len);
-      if (!memcmp(o->v1, orig_o->v1, v1_len) ||
-          (!found_one || check_if_text_buf((u8 *)&o->v1, v1_len) == v1_len))
-        maybe_add_auto(afl, o->v1, v1_len);
+      // if (!memcmp(o->v0, orig_o->v0, v0_len) ||
+      //     (!found_one || check_if_text_buf((u8 *)&o->v0, v0_len) == v0_len))
+      //   maybe_add_auto(afl, o->v0, v0_len);
+      // if (!memcmp(o->v1, orig_o->v1, v1_len) ||
+      //     (!found_one || check_if_text_buf((u8 *)&o->v1, v1_len) == v1_len))
+      //   maybe_add_auto(afl, o->v1, v1_len);
 
       //}
 
@@ -3124,6 +3126,7 @@ u8 input_to_state_stage(afl_state_t *afl, u8 *orig_buf, u8 *buf, u32 len) {
     ++cmp_locations;
 #endif
 
+    // if kind is INS, call cmp_fuzz
     if (afl->shm.cmp_map->headers[k].type == CMP_TYPE_INS) {
 
       if (unlikely(cmp_fuzz(afl, k, orig_buf, buf, cbuf, len, lvl, taint))) {
@@ -3133,7 +3136,7 @@ u8 input_to_state_stage(afl_state_t *afl, u8 *orig_buf, u8 *buf, u32 len) {
       }
 
     } else if ((lvl & LVL1) || ((lvl & LVL3) && afl->cmplog_enable_transform)) {
-
+      // kind is rtn
       if (unlikely(rtn_fuzz(afl, k, orig_buf, buf, cbuf, len, lvl, taint))) {
 
         goto exit_its;
