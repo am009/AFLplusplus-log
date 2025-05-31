@@ -561,17 +561,17 @@ u8 fuzz_one_original(afl_state_t *afl) {
   u8 is_logged = 0;
 
 #endif
-  if (!afl->skip_deterministic) {
+  // if (!afl->skip_deterministic) {
 
-    if (!skip_deterministic_stage(afl, in_buf, out_buf, len, before_det_time)) {
+  //   if (!skip_deterministic_stage(afl, in_buf, out_buf, len, before_det_time)) {
 
-      goto abandon_entry;
+  //     goto abandon_entry;
 
-    }
+  //   }
 
-  }
+  // }
 
-  u8 *skip_eff_map = afl->queue_cur->skipdet_e->skip_eff_map;
+  // u8 *skip_eff_map = afl->queue_cur->skipdet_e->skip_eff_map;
 
   /* Skip right away if -d is given, if it has not been chosen sufficiently
      often to warrant the expensive deterministic stage (fuzz_level), or
@@ -640,14 +640,14 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
     afl->stage_cur_byte = afl->stage_cur >> 3;
 
-    if (!skip_eff_map[afl->stage_cur_byte]) continue;
+    // if (!skip_eff_map[afl->stage_cur_byte]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
     FLIP_BIT(out_buf, afl->stage_cur);
 
     /* FUZZERLOG: log mutator name */
-    add_mutator_name("bitflip_1");
+    add_mutator_name("det_bitflip_1");
 
 #ifdef INTROSPECTION
     snprintf(afl->mutation, sizeof(afl->mutation), "%s FLIP_BIT1-%u",
@@ -763,7 +763,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
     afl->stage_cur_byte = afl->stage_cur >> 3;
 
-    if (!skip_eff_map[afl->stage_cur_byte]) continue;
+    // if (!skip_eff_map[afl->stage_cur_byte]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -771,7 +771,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
     FLIP_BIT(out_buf, afl->stage_cur + 1);
 
     /* FUZZERLOG: log mutator name */
-    add_mutator_name("bitflip_2");
+    add_mutator_name("det_bitflip_2");
 
 #ifdef INTROSPECTION
     snprintf(afl->mutation, sizeof(afl->mutation), "%s FLIP_BIT2-%u",
@@ -805,7 +805,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
     afl->stage_cur_byte = afl->stage_cur >> 3;
 
-    if (!skip_eff_map[afl->stage_cur_byte]) continue;
+    // if (!skip_eff_map[afl->stage_cur_byte]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -815,7 +815,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
     FLIP_BIT(out_buf, afl->stage_cur + 3);
 
     /* FUZZERLOG: log mutator name */
-    add_mutator_name("bitflip_4");
+    add_mutator_name("det_bitflip_4");
 
 #ifdef INTROSPECTION
     snprintf(afl->mutation, sizeof(afl->mutation), "%s FLIP_BIT4-%u",
@@ -852,14 +852,14 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
     afl->stage_cur_byte = afl->stage_cur;
 
-    if (!skip_eff_map[afl->stage_cur_byte]) continue;
+    // if (!skip_eff_map[afl->stage_cur_byte]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
     out_buf[afl->stage_cur] ^= 0xFF;
 
     /* FUZZERLOG: log mutator name */
-    add_mutator_name("bitflip_8");
+    add_mutator_name("det_bitflip_8");
 
 #ifdef INTROSPECTION
     snprintf(afl->mutation, sizeof(afl->mutation), "%s FLIP_BIT8-%u",
@@ -874,11 +874,11 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
   /* New effective bytes calculation. */
 
-  for (i = 0; i < len; i++) {
+  // for (i = 0; i < len; i++) {
 
-    if (skip_eff_map[i]) afl->blocks_eff_select += 1;
+  //   if (skip_eff_map[i]) afl->blocks_eff_select += 1;
 
-  }
+  // }
 
   afl->blocks_eff_total += len;
 
@@ -905,7 +905,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
     /* Let's consult the effector map... */
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -914,7 +914,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
     *(u16 *)(out_buf + i) ^= 0xFFFF;
 
     /* FUZZERLOG: log mutator name */
-    add_mutator_name("bitflip_16");
+    add_mutator_name("det_bitflip_16");
 
 #ifdef INTROSPECTION
     snprintf(afl->mutation, sizeof(afl->mutation), "%s FLIP_BIT16-%u",
@@ -951,7 +951,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
     /* Let's consult the effector map... */
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -960,7 +960,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
     *(u32 *)(out_buf + i) ^= 0xFFFFFFFF;
 
     /* FUZZERLOG: log mutator name */
-    add_mutator_name("bitflip_32");
+    add_mutator_name("det_bitflip_32");
 
 #ifdef INTROSPECTION
     snprintf(afl->mutation, sizeof(afl->mutation), "%s FLIP_BIT32-%u",
@@ -1007,7 +1007,7 @@ skip_bitflip:
 
     /* Let's consult the effector map... */
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1026,7 +1026,7 @@ skip_bitflip:
         out_buf[i] = orig + j;
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_8_add");
+        add_mutator_name("det_arith_8_add");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH8+-%u-%u",
@@ -1050,7 +1050,7 @@ skip_bitflip:
         out_buf[i] = orig - j;
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_8_minus");
+        add_mutator_name("det_arith_8_minus");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH8--%u-%u",
@@ -1097,7 +1097,7 @@ skip_bitflip:
 
     /* Let's consult the effector map... */
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1122,7 +1122,7 @@ skip_bitflip:
         *(u16 *)(out_buf + i) = orig + j;
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_16_le_add");
+        add_mutator_name("det_arith_16_le_add");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH16+-%u-%u",
@@ -1144,7 +1144,7 @@ skip_bitflip:
         *(u16 *)(out_buf + i) = orig - j;
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_16_le_minus");
+        add_mutator_name("det_arith_16_le_minus");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH16--%u-%u",
@@ -1170,7 +1170,7 @@ skip_bitflip:
         *(u16 *)(out_buf + i) = SWAP16(SWAP16(orig) + j);
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_16_be_add");
+        add_mutator_name("det_arith_16_be_add");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH16+BE-%u-%u",
@@ -1192,7 +1192,7 @@ skip_bitflip:
         *(u16 *)(out_buf + i) = SWAP16(SWAP16(orig) - j);
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_16_be_minus");
+        add_mutator_name("det_arith_16_be_minus");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH16_BE-%u-%u",
@@ -1239,7 +1239,7 @@ skip_bitflip:
 
     /* Let's consult the effector map... */
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1262,7 +1262,7 @@ skip_bitflip:
         *(u32 *)(out_buf + i) = orig + j;
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_32_le_add");
+        add_mutator_name("det_arith_32_le_add");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH32+-%u-%u",
@@ -1284,7 +1284,7 @@ skip_bitflip:
         *(u32 *)(out_buf + i) = orig - j;
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_32_le_minus");
+        add_mutator_name("det_arith_32_le_minus");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH32_-%u-%u",
@@ -1310,7 +1310,7 @@ skip_bitflip:
         *(u32 *)(out_buf + i) = SWAP32(SWAP32(orig) + j);
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_32_be_add");
+        add_mutator_name("det_arith_32_be_add");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH32+BE-%u-%u",
@@ -1332,7 +1332,7 @@ skip_bitflip:
         *(u32 *)(out_buf + i) = SWAP32(SWAP32(orig) - j);
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("arith_32_be_minus");
+        add_mutator_name("det_arith_32_be_minus");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s ARITH32_BE-%u-%u",
@@ -1385,7 +1385,7 @@ skip_arith:
 
     /* Let's consult the effector map... */
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1407,7 +1407,7 @@ skip_arith:
       out_buf[i] = interesting_8[j];
 
       /* FUZZERLOG: log mutator name */
-      add_mutator_name("interesting_8");
+      add_mutator_name("det_interesting_8");
 
 #ifdef INTROSPECTION
       snprintf(afl->mutation, sizeof(afl->mutation), "%s INTERESTING8_%u_%u",
@@ -1448,7 +1448,7 @@ skip_arith:
 
     /* Let's consult the effector map... */
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1470,7 +1470,7 @@ skip_arith:
         *(u16 *)(out_buf + i) = interesting_16[j];
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("interesting_16_le");
+        add_mutator_name("det_interesting_16_le");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s INTERESTING16_%u_%u",
@@ -1494,7 +1494,7 @@ skip_arith:
         afl->stage_val_type = STAGE_VAL_BE;
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("interesting_16_be");
+        add_mutator_name("det_interesting_16_be");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation),
@@ -1542,7 +1542,7 @@ skip_arith:
 
     /* Let's consult the effector map... */
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1564,7 +1564,7 @@ skip_arith:
         *(u32 *)(out_buf + i) = interesting_32[j];
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("interesting_32_le");
+        add_mutator_name("det_interesting_32_le");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation), "%s INTERESTING32_%u_%u",
@@ -1588,7 +1588,7 @@ skip_arith:
         afl->stage_val_type = STAGE_VAL_BE;
 
         /* FUZZERLOG: log mutator name */
-        add_mutator_name("interesting_32_be");
+        add_mutator_name("det_interesting_32_be");
 
 #ifdef INTROSPECTION
         snprintf(afl->mutation, sizeof(afl->mutation),
@@ -1642,7 +1642,7 @@ skip_interest:
 
     u32 last_len = 0;
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1674,7 +1674,7 @@ skip_interest:
       memcpy(out_buf + i, afl->extras[j].data, last_len);
 
       /* FUZZERLOG: log mutator name */
-      add_mutator_name("extra_rep");
+      add_mutator_name("det_extra_rep");
 
 #ifdef INTROSPECTION
       snprintf(afl->mutation, sizeof(afl->mutation),
@@ -1714,7 +1714,7 @@ skip_interest:
 
   for (i = 0; i <= (u32)len; ++i) {
 
-    if (!skip_eff_map[i % len]) continue;
+    // if (!skip_eff_map[i % len]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1736,7 +1736,7 @@ skip_interest:
       memcpy(ex_tmp + i + afl->extras[j].len, out_buf + i, len - i);
 
       /* FUZZERLOG: log mutator name */
-      add_mutator_name("extra_ins");
+      add_mutator_name("det_extra_ins");
 
 #ifdef INTROSPECTION
       snprintf(afl->mutation, sizeof(afl->mutation), "%s EXTRAS_insert-%u-%u",
@@ -1783,7 +1783,7 @@ skip_user_extras:
 
     u32 last_len = 0;
 
-    if (!skip_eff_map[i]) continue;
+    // if (!skip_eff_map[i]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1806,7 +1806,7 @@ skip_user_extras:
       memcpy(out_buf + i, afl->a_extras[j].data, last_len);
 
       /* FUZZERLOG: log mutator name */
-      add_mutator_name("auto_extra_overwrite");
+      add_mutator_name("det_auto_extra_overwrite");
 
 #ifdef INTROSPECTION
       snprintf(afl->mutation, sizeof(afl->mutation),
@@ -1846,7 +1846,7 @@ skip_user_extras:
 
   for (i = 0; i <= (u32)len; ++i) {
 
-    if (!skip_eff_map[i % len]) continue;
+    // if (!skip_eff_map[i % len]) continue;
 
     if (is_det_timeout(before_det_time, 0)) { goto custom_mutator_stage; }
 
@@ -1868,7 +1868,7 @@ skip_user_extras:
       memcpy(ex_tmp + i + afl->a_extras[j].len, out_buf + i, len - i);
 
       /* FUZZERLOG: log mutator name */
-      add_mutator_name("auto_extra_insert");
+      add_mutator_name("det_auto_extra_insert");
 
 #ifdef INTROSPECTION
       snprintf(afl->mutation, sizeof(afl->mutation),
