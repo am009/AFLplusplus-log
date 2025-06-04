@@ -904,6 +904,7 @@ void cull_queue(afl_state_t *afl) {
 
 u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
+  return 100;
   u32 cal_cycles = afl->total_cal_cycles;
   u32 bitmap_entries = afl->total_bitmap_entries;
 
