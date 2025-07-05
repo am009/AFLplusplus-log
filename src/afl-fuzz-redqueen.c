@@ -28,6 +28,12 @@
 #include "afl-fuzz.h"
 #include "cmplog.h"
 
+static void print_auto_dict(int loc, const char* buf, u32 size) {
+  fprintf(stderr, "Add dict(%d) : ", loc);
+  fwrite(buf, size, 1, stderr);
+  fprintf(stderr, "\n");
+}
+
 // #define _DEBUG
 // #define USE_HASHMAP
 // #define CMPLOG_INTROSPECTION
@@ -2136,12 +2142,24 @@ static u8 cmp_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
 
           if (!found_one ||
               check_if_text_buf((u8 *)&s128_v0, SHAPE_BYTES(h->shape)) ==
-                  SHAPE_BYTES(h->shape))
+                  SHAPE_BYTES(h->shape)) {
+            u32 old = afl->a_extras_cnt;
             try_to_add_to_dictN(afl, s128_v0, SHAPE_BYTES(h->shape));
+            if (afl->a_extras_cnt > old) {
+              print_auto_dict(5, (u8 *)&s128_v0, SHAPE_BYTES(h->shape));
+            }
+          }
+            
           if (!found_one ||
               check_if_text_buf((u8 *)&s128_v1, SHAPE_BYTES(h->shape)) ==
-                  SHAPE_BYTES(h->shape))
+                  SHAPE_BYTES(h->shape)) {
+            u32 old = afl->a_extras_cnt;
             try_to_add_to_dictN(afl, s128_v1, SHAPE_BYTES(h->shape));
+            if (afl->a_extras_cnt > old) {
+              print_auto_dict(6, (u8 *)&s128_v1, SHAPE_BYTES(h->shape));
+            }
+          }
+            
 
         } else
 
@@ -2151,13 +2169,24 @@ static u8 cmp_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
           if (!memcmp((u8 *)&o->v0, (u8 *)&orig_o->v0, SHAPE_BYTES(h->shape)) &&
               (!found_one ||
                check_if_text_buf((u8 *)&o->v0, SHAPE_BYTES(h->shape)) ==
-                   SHAPE_BYTES(h->shape)))
+                   SHAPE_BYTES(h->shape))) {
+            u32 old = afl->a_extras_cnt;
             try_to_add_to_dict(afl, o->v0, SHAPE_BYTES(h->shape));
+            if (afl->a_extras_cnt > old) {
+              print_auto_dict(7, (u8 *)&o->v0, SHAPE_BYTES(h->shape));
+            }
+          }
+            
           if (!memcmp((u8 *)&o->v1, (u8 *)&orig_o->v1, SHAPE_BYTES(h->shape)) &&
               (!found_one ||
                check_if_text_buf((u8 *)&o->v1, SHAPE_BYTES(h->shape)) ==
-                   SHAPE_BYTES(h->shape)))
+                   SHAPE_BYTES(h->shape))) {
+            u32 old = afl->a_extras_cnt;
             try_to_add_to_dict(afl, o->v1, SHAPE_BYTES(h->shape));
+            if (afl->a_extras_cnt > old) {
+              print_auto_dict(8, (u8 *)&o->v1, SHAPE_BYTES(h->shape));
+            }
+          }
 
         }
 
@@ -2886,7 +2915,7 @@ static u8 rtn_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
       u32 v0_len = shape_len, v1_len = shape_len;
       if (afl->queue_cur->is_ascii ||
           check_if_text_buf((u8 *)&o->v0, shape_len) == shape_len) {
-
+        // assert(strlen(o->v0) == shape_len); // ??
         if (strlen(o->v0)) v0_len = strlen(o->v0);
 
       }
@@ -2904,18 +2933,36 @@ static u8 rtn_fuzz(afl_state_t *afl, u32 key, u8 *orig_buf, u8 *buf, u8 *cbuf,
       // o->v0, v1_len, o->v1);
 
       if (!memcmp(o->v0, orig_o->v0, v0_len) && o->unused[0] != ADDR_ATTR_NOTFOUND && orig_o->unused[0] != ADDR_ATTR_NOTFOUND) {
+        u32 old = afl->a_extras_cnt;
         maybe_add_auto(afl, o->v0, v0_len);
+        if (afl->a_extras_cnt > old) {
+          print_auto_dict(1, o->v0, v0_len);
+        }
       } else if (!memcmp(o->v1, orig_o->v1, v1_len) && o->unused[1] != ADDR_ATTR_NOTFOUND && orig_o->unused[1] != ADDR_ATTR_NOTFOUND) {
+        u32 old = afl->a_extras_cnt;
         maybe_add_auto(afl, o->v1, v1_len);
+        if (afl->a_extras_cnt > old) {
+          print_auto_dict(2, o->v1, v1_len);
+        }
       } else {
         // Note that this check differs from the line 1901, for RTN we are more
         // opportunistic for adding to the dictionary than cmps
-        if (!memcmp(o->v0, orig_o->v0, v0_len) ||
-            (!found_one || check_if_text_buf((u8 *)&o->v0, v0_len) == v0_len))
+        if (!memcmp(o->v0, orig_o->v0, v0_len) &&
+            (!found_one || check_if_text_buf((u8 *)&o->v0, v0_len) == v0_len) && v0_len != 32) {
+          u32 old = afl->a_extras_cnt;
           maybe_add_auto(afl, o->v0, v0_len);
-        if (!memcmp(o->v1, orig_o->v1, v1_len) ||
-            (!found_one || check_if_text_buf((u8 *)&o->v1, v1_len) == v1_len))
+          if (afl->a_extras_cnt > old) {
+            print_auto_dict(3, o->v0, v0_len);
+          }
+        }
+        if (!memcmp(o->v1, orig_o->v1, v1_len) &&
+            (!found_one || check_if_text_buf((u8 *)&o->v1, v1_len) == v1_len) && v1_len != 32) {
+          u32 old = afl->a_extras_cnt;
           maybe_add_auto(afl, o->v1, v1_len);
+          if (afl->a_extras_cnt > old) {
+            print_auto_dict(4, o->v1, v1_len);
+          }
+        }
       }
 
       //}
@@ -3154,6 +3201,7 @@ u8 input_to_state_stage(afl_state_t *afl, u8 *orig_buf, u8 *buf, u32 len) {
 
     } else if ((lvl & LVL1) || ((lvl & LVL3) && afl->cmplog_enable_transform)) {
 
+      // 要不在这里判断一下是否是和程序内的某个值比较，是的话就直接加入dict，然后跳过。
       if (unlikely(rtn_fuzz(afl, k, orig_buf, buf, cbuf, len, lvl, taint))) {
 
         goto exit_its;
