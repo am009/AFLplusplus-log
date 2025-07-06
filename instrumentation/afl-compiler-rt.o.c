@@ -2586,7 +2586,46 @@ void __cmplog_rtn_hook(u8 *ptr1, u8 *ptr2) {
 void __cmplog_rtn_hook_n(u8 *ptr1, u8 *ptr2, u64 len) {
 
   (void)(len);
-  __cmplog_rtn_hook(ptr1, ptr2);
+
+  if (likely(!__afl_cmp_map)) return;
+  int l1, l2;
+  if ((l1 = area_is_valid(ptr1, 32)) <= 0 ||
+      (l2 = area_is_valid(ptr2, 32)) <= 0)
+    return;
+
+  if (l1 < len || l2 < len) {
+
+    __cmplog_rtn_hook(ptr1, ptr2);
+    return;
+
+  }
+
+  u64 trust_length = 0;
+
+  if (ptr1[len - 1] == 0 && ptr1[len - 2] != 0) { trust_length = len - 1; }
+  if (ptr2[len - 1] == 0 && ptr2[len - 2] != 0) { trust_length = len - 1; }
+  if (l1 >= (len + 1) && ptr1[len] == 0 && ptr1[len - 1] != 0) {
+
+    trust_length = len;
+
+  }
+
+  if (l2 >= (len + 1) && ptr2[len] == 0 && ptr2[len - 1] != 0) {
+
+    trust_length = len;
+
+  }
+
+  // redirect to strn if one of the location is null-terminated.
+  if (trust_length) {
+
+    __cmplog_rtn_hook_strn(ptr1, ptr2, trust_length);
+
+  } else {
+
+    __cmplog_rtn_hook(ptr1, ptr2);
+
+  }
 
 #if 0
   /*
