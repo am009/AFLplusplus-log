@@ -360,11 +360,30 @@ uint64_t PowerOf2Ceil(unsigned in) {
 
 #endif
 
+bool hasTrailingSlash(StringRef Str) {
+  if (Str.empty()) {
+    return false;
+  }
+  return Str.back() == '/';
+}
+
 std::set<std::string> getSourceInfo(BasicBlock& BB) {
   std::set<std::string> Ret;
-  BB.getFirstNonPHIOrDbgOrLifetime();
+
+  Function *F = BB.getParent();
+  DISubprogram *SP = F->getSubprogram();
+
+  unsigned FuncStartLine;
+  StringRef FuncFile;
+  StringRef FuncDir;
+  if (SP) {
+    FuncStartLine = SP->getLine();
+    FuncFile = SP->getFilename();
+    FuncDir  = SP->getDirectory();
+  }
+
   for (auto& I: BB) {
-    if (DILocation *Loc = I.getDebugLoc()){
+    if (DILocation *Loc = I.getDebugLoc()) {
       if (isa<PHINode>(I) || isa<DbgInfoIntrinsic>(I))
         continue;
 
@@ -373,14 +392,30 @@ std::set<std::string> getSourceInfo(BasicBlock& BB) {
 
       if (isa<PseudoProbeInst>(I))
         continue;
+
       StringRef File = Loc->getFilename();
       StringRef Dir = Loc->getDirectory();
-
       unsigned Line = Loc->getLine();
       std::string DirStr = Dir.str();
-      std::string Full = DirStr + ((DirStr.back() == '/') ? "" : "/") + File.str() + ":" + std::to_string(Line);
+      std::string Full = DirStr + (hasTrailingSlash(DirStr) ? "" : "/") + File.str() + ":" + std::to_string(Line);
+
+      // 从 Loc 的 scope 向上找，直到碰到最外层的 DISubprogram
+      DIScope *DS = Loc->getScope();
+      while (DS && !isa<DISubprogram>(DS))
+        DS = DS->getScope();
+
+      if (SP) {
+        DISubprogram *LocSP = dyn_cast_or_null<DISubprogram>(DS);
+        if (LocSP != SP)
+          continue;   // 这条记录不是属于当前函数定义的范围，就丢掉
+      }
+
       Ret.insert(Full);
     }
+  }
+
+  if (SP && Ret.empty()) {
+    Ret.insert(FuncDir.str() + (hasTrailingSlash(FuncDir) ? "" : "/") + FuncFile.str() + ":" + std::to_string(FuncStartLine));
   }
   return Ret;
 }
@@ -865,7 +900,8 @@ bool AFLCoverage::runOnModule(Module &M) {
       BlockInfoStream << block_id_map.at(&BB) << ","
                         << F.getName().str();
       // Output block info: block id, function name, and source location.
-      for (auto& Loc: getSourceInfo(BB)) {
+      auto SourceInfo = getSourceInfo(BB);
+      for (auto& Loc: SourceInfo) {
         BlockInfoStream << "," << Loc;
       }
       BlockInfoStream << "\n";
