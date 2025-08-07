@@ -27,6 +27,7 @@
  */
 
 #include "config.h"
+#include "afl-fuzz.h"
 #include "types.h"
 #include "debug.h"
 #include "common.h"
@@ -1424,6 +1425,9 @@ afl_fsrv_run_target(afl_forkserver_t *fsrv, u32 timeout,
         fsrv->nyx_handlers->nyx_exec(fsrv->nyx_runner);
 
     fsrv->total_execs++;
+    /* FUZZERLOG: add one exec chance */
+    increase_chances();
+    // reset_mutator_names();
 
     switch (ret_val) {
 
@@ -1586,6 +1590,9 @@ afl_fsrv_run_target(afl_forkserver_t *fsrv, u32 timeout,
   if (!WIFSTOPPED(fsrv->child_status)) { fsrv->child_pid = -1; }
 
   fsrv->total_execs++;
+  /* FUZZERLOG: add one exec chance */
+  increase_chances();
+  // reset_mutator_names();
 
   /* Any subsequent operations on fsrv->trace_bits must not be moved by the
      compiler below this point. Past this location, fsrv->trace_bits[]
