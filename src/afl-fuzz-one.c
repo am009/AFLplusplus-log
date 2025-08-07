@@ -425,6 +425,7 @@ u8 fuzz_one_original(afl_state_t *afl) {
   len = afl->queue_cur->len;
 
   /* FUZZERLOG: log current seed */
+  log_chances();
   reset_current_seed_name();
   reset_chances();
   set_current_seed_name(afl->queue_cur->fname);
@@ -6495,9 +6496,6 @@ u8 fuzz_one(afl_state_t *afl) {
 
   if (unlikely(key_val_lv_1 == -1)) { key_val_lv_1 = 0; }
   if (likely(key_val_lv_2 == -1)) { key_val_lv_2 = 0; }
-
-  /* FUZZERLOG: log chances given to the current seed */
-  log_chances();
 
   return (key_val_lv_1 | key_val_lv_2);
 

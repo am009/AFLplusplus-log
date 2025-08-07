@@ -1152,9 +1152,9 @@ common_fuzz_stuff(afl_state_t *afl, u8 *out_buf, u32 len) {
   }
 
   fault = fuzz_run_target(afl, &afl->fsrv, afl->fsrv.exec_tmout);
-  /* FUZZERLOG: add one exec chance */
-  increase_chances();
-  // reset_mutator_names();
+  // /* FUZZERLOG: add one exec chance */
+  // increase_chances();
+  // // reset_mutator_names();
 
   if (afl->stop_soon) { return 1; }
 

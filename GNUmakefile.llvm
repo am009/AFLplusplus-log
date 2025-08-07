@@ -392,7 +392,7 @@ else
 	@echo "[*] We have llvm-config version $(LLVMVER) with a clang version $(CLANGVER), good."
 endif
 	@echo "[*] Checking for './afl-showmap'..."
-	@test -f ./afl-showmap || ( echo "[-] Oops, can't find './afl-showmap'. Be sure to compile AFL first."; exit 1 )
+	# @test -f ./afl-showmap || ( echo "[-] Oops, can't find './afl-showmap'. Be sure to compile AFL first."; exit 1 )
 	@echo "[+] All set and ready to build."
 
 instrumentation/afl-common.o: ./src/afl-common.c
