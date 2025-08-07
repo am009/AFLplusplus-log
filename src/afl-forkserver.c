@@ -30,6 +30,7 @@
 #ifdef AFL_PERSISTENT_RECORD
   #include "afl-fuzz.h"
 #endif
+#include "afl-fuzz.h"
 #include "types.h"
 #include "debug.h"
 #include "common.h"
@@ -2036,6 +2037,9 @@ fsrv_run_result_t __attribute__((hot)) afl_fsrv_run_target(
         fsrv->nyx_handlers->nyx_exec(fsrv->nyx_runner);
 
     fsrv->total_execs++;
+    /* FUZZERLOG: add one exec chance */
+    increase_chances();
+    // reset_mutator_names();
 
     switch (ret_val) {
 
@@ -2240,6 +2244,9 @@ fsrv_run_result_t __attribute__((hot)) afl_fsrv_run_target(
   if (!WIFSTOPPED(fsrv->child_status)) { fsrv->child_pid = -1; }
 
   fsrv->total_execs++;
+  /* FUZZERLOG: add one exec chance */
+  increase_chances();
+  // reset_mutator_names();
 
   /* Any subsequent operations on fsrv->trace_bits must not be moved by the
      compiler below this point. Past this location, fsrv->trace_bits[]
