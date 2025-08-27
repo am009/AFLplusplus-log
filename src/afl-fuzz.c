@@ -55,6 +55,8 @@ set_splice_seed_name_handle set_splice_seed_name;
 log_chances_handle log_chances;
 fuzzer_logger_start_handle fuzzer_logger_start;
 fuzzer_logger_end_handle fuzzer_logger_end;
+start_exec_target_handle start_exec_target;
+end_exec_target_handle end_exec_target;
 
 void *fuzzer_log_lib;
 
@@ -2003,16 +2005,57 @@ int main(int argc, char **argv_orig, char **envp) {
   }
 
   reset_chances = dlsym(fuzzer_log_lib, "reset_chances");
+  if (reset_chances == NULL) {
+    ABORT("fuzzer-log-lib: cannot found reset_chances: %s", dlerror());
+  }
   increase_chances = dlsym(fuzzer_log_lib, "increase_chances");
+  if (increase_chances == NULL) {
+    ABORT("fuzzer-log-lib: cannot found increase_chances: %s", dlerror());
+  }
   reset_mutator_names = dlsym(fuzzer_log_lib, "reset_mutator_names");
+  if (reset_mutator_names == NULL) {
+    ABORT("fuzzer-log-lib: cannot found reset_mutator_names: %s", dlerror());
+  }
   add_mutator_name = dlsym(fuzzer_log_lib, "add_mutator_name");
+  if (add_mutator_name == NULL) {
+    ABORT("fuzzer-log-lib: cannot found add_mutator_name: %s", dlerror());
+  }
   log_new_seed = dlsym(fuzzer_log_lib, "log_new_seed");
+  if (log_new_seed == NULL) {
+    ABORT("fuzzer-log-lib: cannot found log_new_seed: %s", dlerror());
+  }
   reset_current_seed_name = dlsym(fuzzer_log_lib, "reset_current_seed_name");
+  if (reset_current_seed_name == NULL) {
+    ABORT("fuzzer-log-lib: cannot found reset_current_seed_name: %s", dlerror());
+  }
   set_current_seed_name = dlsym(fuzzer_log_lib, "set_current_seed_name");
+  if (set_current_seed_name == NULL) {
+    ABORT("fuzzer-log-lib: cannot found set_current_seed_name: %s", dlerror());
+  }
   set_splice_seed_name = dlsym(fuzzer_log_lib, "set_splice_seed_name");
+  if (set_splice_seed_name == NULL) {
+    ABORT("fuzzer-log-lib: cannot found set_splice_seed_name: %s", dlerror());
+  }
   log_chances = dlsym(fuzzer_log_lib, "log_chances");
+  if (log_chances == NULL) {
+    ABORT("fuzzer-log-lib: cannot found log_chances: %s", dlerror());
+  }
   fuzzer_logger_start = dlsym(fuzzer_log_lib, "fuzzer_logger_start");
+  if (fuzzer_logger_start == NULL) {
+    ABORT("fuzzer-log-lib: cannot found fuzzer_logger_start: %s", dlerror());
+  }
   fuzzer_logger_end = dlsym(fuzzer_log_lib, "fuzzer_logger_end");
+  if (fuzzer_logger_end == NULL) {
+    ABORT("fuzzer-log-lib: cannot found fuzzer_logger_end: %s", dlerror());
+  }
+  start_exec_target = dlsym(fuzzer_log_lib, "start_exec_target");
+  if (start_exec_target == NULL) {
+    ABORT("fuzzer-log-lib: cannot found start_exec_target: %s", dlerror());
+  }
+  end_exec_target = dlsym(fuzzer_log_lib, "end_exec_target");
+  if (end_exec_target == NULL) {
+    ABORT("fuzzer-log-lib: cannot found end_exec_target: %s", dlerror());
+  }
 
   fuzzer_logger_start();
 

@@ -999,6 +999,8 @@ typedef void (*set_splice_seed_name_handle)(char * seed_name);
 typedef void (*log_chances_handle)();
 typedef void (*fuzzer_logger_start_handle)();
 typedef void (*fuzzer_logger_end_handle)();
+typedef void (*start_exec_target_handle)();
+typedef unsigned long long (*end_exec_target_handle)();
 
 extern reset_chances_handle reset_chances;
 extern increase_chances_handle increase_chances;
@@ -1011,6 +1013,8 @@ extern set_splice_seed_name_handle set_splice_seed_name;
 extern log_chances_handle log_chances;
 extern fuzzer_logger_start_handle fuzzer_logger_start;
 extern fuzzer_logger_end_handle fuzzer_logger_end;
+extern start_exec_target_handle start_exec_target;
+extern end_exec_target_handle end_exec_target;
 
 extern void *fuzzer_log_lib;
 
