@@ -2192,8 +2192,14 @@ fsrv_run_result_t __attribute__((hot)) afl_fsrv_run_target(
 
   }
 
+  if (start_exec_target) {
+    start_exec_target();
+  }
   exec_ms = read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, timeout,
                            stop_soon_p);
+  if (end_exec_target) {
+    end_exec_target();
+  }
 
   if (exec_ms > timeout) {
 
