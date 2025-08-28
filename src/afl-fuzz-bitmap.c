@@ -513,7 +513,7 @@ save_if_interesting(afl_state_t *afl, void *mem, u32 len, u8 fault) {
     ck_write(fd, mem, len, queue_fn);
     close(fd);
     /* FUZZERLOG: log for new seed */
-    log_new_seed(queue_fn, "new-cov");
+    log_new_seed(queue_fn, new_bits == 0 ? "unknown" : (new_bits > 1 ? "cov-new-tuple" : "cov-new-count"));
     add_to_queue(afl, queue_fn, len, 0);
 
 #ifdef INTROSPECTION
