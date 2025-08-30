@@ -928,36 +928,37 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
     if (q->exec_us * 0.1 > avg_exec_us) {
 
-      perf_score = 10;
+      perf_score = 400;
 
     } else if (q->exec_us * 0.25 > avg_exec_us) {
 
-      perf_score = 25;
+      perf_score = 300;
 
     } else if (q->exec_us * 0.5 > avg_exec_us) {
 
-      perf_score = 50;
+      perf_score = 200;
 
     } else if (q->exec_us * 0.75 > avg_exec_us) {
 
-      perf_score = 75;
+      perf_score = 150;
 
     } else if (q->exec_us * 4 < avg_exec_us) {
 
-      perf_score = 300;
+      perf_score = 10;
 
     } else if (q->exec_us * 3 < avg_exec_us) {
 
-      perf_score = 200;
+      perf_score = 25;
 
     } else if (q->exec_us * 2 < avg_exec_us) {
 
-      perf_score = 150;
+      perf_score = 50;
 
     }
 
   }
 
+  return perf_score;
   /* Adjust score based on bitmap size. The working theory is that better
      coverage translates to better targets. Multiplier from 0.25x to 3x. */
 
