@@ -95,8 +95,8 @@ inline void discover_word(u8 *ret, u64 *current, u64 *virgin) {
           (cur[4] && vir[4] == 0xff) || (cur[5] && vir[5] == 0xff) ||
           (cur[6] && vir[6] == 0xff) || (cur[7] && vir[7] == 0xff))
         *ret = 2;
-      else
-        *ret = 1;
+      // else
+      //   *ret = 1;
 
     }
 

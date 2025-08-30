@@ -83,8 +83,8 @@ inline void discover_word(u8 *ret, u32 *current, u32 *virgin) {
       if (unlikely((cur[0] && vir[0] == 0xff) || (cur[1] && vir[1] == 0xff) ||
                    (cur[2] && vir[2] == 0xff) || (cur[3] && vir[3] == 0xff)))
         *ret = 2;
-      else
-        *ret = 1;
+      // else
+      //   *ret = 1;
 
     }
 
