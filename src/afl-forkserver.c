@@ -2037,9 +2037,6 @@ fsrv_run_result_t __attribute__((hot)) afl_fsrv_run_target(
         fsrv->nyx_handlers->nyx_exec(fsrv->nyx_runner);
 
     fsrv->total_execs++;
-    /* FUZZERLOG: add one exec chance */
-    increase_chances();
-    // reset_mutator_names();
 
     switch (ret_val) {
 
