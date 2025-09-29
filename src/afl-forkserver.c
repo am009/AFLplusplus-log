@@ -1832,9 +1832,6 @@ afl_fsrv_run_target(afl_forkserver_t *fsrv, u32 timeout,
         fsrv->nyx_handlers->nyx_exec(fsrv->nyx_runner);
 
     fsrv->total_execs++;
-    /* FUZZERLOG: add one exec chance */
-    increase_chances();
-    // reset_mutator_names();
 
     switch (ret_val) {
 
@@ -1946,14 +1943,8 @@ afl_fsrv_run_target(afl_forkserver_t *fsrv, u32 timeout,
 
   }
 
-  if (start_exec_target) {
-    start_exec_target();
-  }
   exec_ms = read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, timeout,
                            stop_soon_p);
-  if (end_exec_target) {
-    end_exec_target();
-  }
 
   if (exec_ms > timeout) {
 

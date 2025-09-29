@@ -1151,10 +1151,18 @@ common_fuzz_stuff(afl_state_t *afl, u8 *out_buf, u32 len) {
 
   }
 
+  /* FUZZERLOG: add one exec chance */
+  increase_chances();
+  // reset_mutator_names();
+  if (start_exec_target) {
+    start_exec_target();
+  }
+
   fault = fuzz_run_target(afl, &afl->fsrv, afl->fsrv.exec_tmout);
-  // /* FUZZERLOG: add one exec chance */
-  // increase_chances();
-  // // reset_mutator_names();
+
+  if (end_exec_target) {
+    end_exec_target();
+  }
 
   if (afl->stop_soon) { return 1; }
 
