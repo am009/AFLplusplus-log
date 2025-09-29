@@ -73,7 +73,8 @@ double compute_weight(afl_state_t *afl, struct queue_entry *q,
 
   }
 
-  if (likely(afl->schedule < RARE)) { weight *= (avg_exec_us / q->exec_us); }
+  (void)avg_exec_us;
+  // if (likely(afl->schedule < RARE)) { weight *= (avg_exec_us / q->exec_us); }
   weight *= (log(q->bitmap_size) / avg_bitmap_size);
   weight *= (1 + (q->tc_ref / avg_top_size));
 
@@ -733,7 +734,7 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
 
   } else {
 
-    fav_factor = q->exec_us * q->len;
+    fav_factor = q->len;
 
   }
 
@@ -770,8 +771,7 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
 
         } else {
 
-          top_rated_fav_factor =
-              afl->top_rated[i]->exec_us * afl->top_rated[i]->len;
+          top_rated_fav_factor = afl->top_rated[i]->len;
 
         }
 
