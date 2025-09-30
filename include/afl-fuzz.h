@@ -1132,6 +1132,7 @@ void sync_fuzzers(afl_state_t *);
 u32  write_to_testcase(afl_state_t *, void *, u32, u32);
 u8   calibrate_case(afl_state_t *, struct queue_entry *, u8 *, u32, u8);
 u8   trim_case(afl_state_t *, struct queue_entry *, u8 *);
+u8   common_fuzz_stuff2(afl_state_t *, u8 *, u32);
 u8   common_fuzz_stuff(afl_state_t *, u8 *, u32);
 fsrv_run_result_t fuzz_run_target(afl_state_t *, afl_forkserver_t *fsrv, u32);
 
