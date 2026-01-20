@@ -127,3 +127,6 @@ utils/plot_ui/afl-plot-ui
 vuln_prog
 argv_fuzz_demo
 argv_fuzz_persistent_demo
+
+.cache/
+mytest/
