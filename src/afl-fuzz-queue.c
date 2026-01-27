@@ -236,42 +236,62 @@ void create_alias_table(afl_state_t *afl) {
 
           }
 
-          double bms = q->bitmap_size / avg_bitmap_size;
-          if (likely(bms < 0.1)) {
+          // Check if coverage bias should be disabled
+          static u8 disable_coverage_bias = 0xFF;
+          static u8 coverage_bias_msg_shown = 0;
 
-            weight *= 0.01;
+          if (unlikely(disable_coverage_bias == 0xFF)) {
 
-          } else if (likely(bms <= 0.25)) {
+            u8 *env_val = getenv("AFL_DISABLE_COVERAGE_BIAS");
+            disable_coverage_bias = (env_val && env_val[0]) ? 1 : 0;
 
-            weight *= 0.55;
+          }
 
-          } else if (likely(bms <= 0.5)) {
+          if (likely(!disable_coverage_bias)) {
 
-            // nothing
+            double bms = q->bitmap_size / avg_bitmap_size;
+            if (likely(bms < 0.1)) {
 
-          } else if (likely(bms <= 0.75)) {
+              weight *= 0.01;
 
-            weight *= 1.2;
+            } else if (likely(bms <= 0.25)) {
 
-          } else if (likely(bms <= 1.25)) {
+              weight *= 0.55;
 
-            weight *= 1.3;
+            } else if (likely(bms <= 0.5)) {
 
-          } else if (likely(bms <= 1.75)) {
+              // nothing
 
-            weight *= 1.25;
+            } else if (likely(bms <= 0.75)) {
 
-          } else if (likely(bms <= 2.0)) {
+              weight *= 1.2;
 
-            // nothing
+            } else if (likely(bms <= 1.25)) {
 
-          } else if (likely(bms <= 2.5)) {
+              weight *= 1.3;
 
-            weight *= 1.3;
+            } else if (likely(bms <= 1.75)) {
 
-          } else {
+              weight *= 1.25;
 
-            weight *= 0.75;
+            } else if (likely(bms <= 2.0)) {
+
+              // nothing
+
+            } else if (likely(bms <= 2.5)) {
+
+              weight *= 1.3;
+
+            } else {
+
+              weight *= 0.75;
+
+            }
+
+          } else if (unlikely(!coverage_bias_msg_shown)) {
+
+            ACTF("Coverage bias disabled (AFL_DISABLE_COVERAGE_BIAS set)");
+            coverage_bias_msg_shown = 1;
 
           }
 
