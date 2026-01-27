@@ -71,9 +71,9 @@
 void __fuzzerlog_empty() {}
 unsigned long long __fuzzerlog_empty1() { return 0; }
 
-start_exec_target_handle start_exec_target = __fuzzerlog_empty;
-end_exec_target_handle end_exec_target = __fuzzerlog_empty1;
-increase_chances_handle increase_chances = __fuzzerlog_empty;
+fuzzerlog_start_exec_target_handle fuzzerlog_start_exec_target = __fuzzerlog_empty;
+fuzzerlog_end_exec_target_handle fuzzerlog_end_exec_target = __fuzzerlog_empty1;
+fuzzerlog_increase_chances_handle fuzzerlog_increase_chances = __fuzzerlog_empty;
 
 static afl_state_t *afl;
 

@@ -742,7 +742,7 @@ u8 __attribute__((hot)) save_if_interesting(afl_state_t *afl, void *mem,
     }
 
     /* FUZZERLOG: log for new seed */
-    log_new_seed(queue_fn, new_bits == 0 ? "unknown" : (new_bits > 1 ? "cov-new-tuple" : "cov-new-count"));
+    fuzzerlog_new_seed(queue_fn, new_bits == 0 ? "unknown" : (new_bits > 1 ? "cov-new-tuple" : "cov-new-count"));
     add_to_queue(afl, queue_fn, len, 0);
 
     if (unlikely(afl->fuzz_mode) &&
@@ -957,7 +957,7 @@ may_save_fault:
 
       ++afl->saved_hangs;
       /* FUZZERLOG: log for new seed */
-      log_new_seed(fn, "new-hang");
+      fuzzerlog_new_seed(fn, "new-hang");
 
       afl->last_hang_time = get_cur_time();
 
@@ -973,7 +973,7 @@ may_save_fault:
 
       ++afl->total_crashes;
       /* FUZZERLOG: log for new seed */
-      log_new_seed(fn, "new-crash");
+      fuzzerlog_new_seed(fn, "new-crash");
 
       if (afl->saved_crashes >= KEEP_UNIQUE_CRASH) { return keeping; }
 

@@ -2189,13 +2189,13 @@ fsrv_run_result_t __attribute__((hot)) afl_fsrv_run_target(
 
   }
 
-  if (start_exec_target) {
-    start_exec_target();
+  if (fuzzerlog_start_exec_target) {
+    fuzzerlog_start_exec_target();
   }
   exec_ms = read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, timeout,
                            stop_soon_p);
-  if (end_exec_target) {
-    end_exec_target();
+  if (fuzzerlog_end_exec_target) {
+    fuzzerlog_end_exec_target();
   }
 
   if (exec_ms > timeout) {
@@ -2248,8 +2248,8 @@ fsrv_run_result_t __attribute__((hot)) afl_fsrv_run_target(
 
   fsrv->total_execs++;
   /* FUZZERLOG: add one exec chance */
-  increase_chances();
-  // reset_mutator_names();
+  fuzzerlog_increase_chances();
+  // fuzzerlog_reset_mutator_names();
 
   /* Any subsequent operations on fsrv->trace_bits must not be moved by the
      compiler below this point. Past this location, fsrv->trace_bits[]
