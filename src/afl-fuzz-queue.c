@@ -181,38 +181,58 @@ void create_alias_table(afl_state_t *afl) {
 
           }
 
-          double l = q->len / avg_len;
-          if (likely(l < 0.1)) {
+          // Check if seed length bias should be disabled
+          static u8 disable_len_bias = 0xFF;
+          static u8 len_bias_msg_shown = 0;
 
-            weight *= 0.5;
+          if (unlikely(disable_len_bias == 0xFF)) {
 
-          } else if (likely(l <= 0.5)) {
+            u8 *env_val = getenv("AFL_DISABLE_SEED_LEN_BIAS");
+            disable_len_bias = (env_val && env_val[0]) ? 1 : 0;
 
-            // nothing
+          }
 
-          } else if (likely(l <= 1.25)) {
+          if (likely(!disable_len_bias)) {
 
-            weight *= 1.05;
+            double l = q->len / avg_len;
+            if (likely(l < 0.1)) {
 
-          } else if (likely(l <= 1.75)) {
+              weight *= 0.5;
 
-            // nothing
+            } else if (likely(l <= 0.5)) {
 
-          } else if (likely(l <= 2.0)) {
+              // nothing
 
-            weight *= 0.95;
+            } else if (likely(l <= 1.25)) {
 
-          } else if (likely(l <= 5.0)) {
+              weight *= 1.05;
 
-            // nothing
+            } else if (likely(l <= 1.75)) {
 
-          } else if (likely(l <= 10.0)) {
+              // nothing
 
-            weight *= 1.05;
+            } else if (likely(l <= 2.0)) {
 
-          } else {
+              weight *= 0.95;
 
-            weight *= 1.15;
+            } else if (likely(l <= 5.0)) {
+
+              // nothing
+
+            } else if (likely(l <= 10.0)) {
+
+              weight *= 1.05;
+
+            } else {
+
+              weight *= 1.15;
+
+            }
+
+          } else if (unlikely(!len_bias_msg_shown)) {
+
+            ACTF("Seed length bias disabled (AFL_DISABLE_SEED_LEN_BIAS set)");
+            len_bias_msg_shown = 1;
 
           }
 
