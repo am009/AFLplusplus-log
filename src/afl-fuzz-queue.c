@@ -130,7 +130,18 @@ void create_alias_table(afl_state_t *afl) {
 
           }
 
-          if (likely(afl->schedule < RARE)) {
+          // Check if execution time bias should be disabled
+          static u8 disable_exec_time_bias = 0xFF;
+          static u8 exec_time_bias_msg_shown = 0;
+
+          if (unlikely(disable_exec_time_bias == 0xFF)) {
+
+            u8 *env_val = getenv("AFL_DISABLE_EXEC_TIME_BIAS");
+            disable_exec_time_bias = (env_val && env_val[0]) ? 1 : 0;
+
+          }
+
+          if (likely(!disable_exec_time_bias && afl->schedule < RARE)) {
 
             double t = q->exec_us / avg_exec_us;
 
@@ -178,6 +189,11 @@ void create_alias_table(afl_state_t *afl) {
               // else nothing
 
             }
+
+          } else if (unlikely(disable_exec_time_bias && !exec_time_bias_msg_shown)) {
+
+            ACTF("Execution time bias disabled (AFL_DISABLE_EXEC_TIME_BIAS set)");
+            exec_time_bias_msg_shown = 1;
 
           }
 
