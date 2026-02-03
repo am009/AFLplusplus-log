@@ -247,6 +247,30 @@ inline u8 has_new_bits(afl_state_t *afl, u8 *virgin_map) {
   if (unlikely(ret) && likely(virgin_map == afl->virgin_bits))
     afl->bitmap_changed = 1;
 
+  // Check if coverage bin count tracking should be disabled
+  static u8 disable_cov_bin_count = 0xFF;
+  static u8 cov_bin_count_msg_shown = 0;
+
+  if (unlikely(disable_cov_bin_count == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_COV_BIN_COUNT");
+    disable_cov_bin_count = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(disable_cov_bin_count && ret == 1)) {
+
+    if (unlikely(!cov_bin_count_msg_shown)) {
+
+      ACTF("Coverage bin count tracking disabled (AFL_DISABLE_COV_BIN_COUNT set)");
+      cov_bin_count_msg_shown = 1;
+
+    }
+
+    ret = 0;
+
+  }
+
   return ret;
 
 }
