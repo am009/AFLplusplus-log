@@ -1039,6 +1039,30 @@ skip_bitflip:
 
   if (afl->no_arith) { goto skip_arith; }
 
+  // Check if arith mutator should be disabled
+  static u8 disable_arith = 0xFF;
+  static u8 arith_msg_shown = 0;
+
+  if (unlikely(disable_arith == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_ARITH");
+    disable_arith = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(disable_arith)) {
+
+    if (unlikely(!arith_msg_shown)) {
+
+      ACTF("Arith mutator disabled (AFL_DISABLE_MUTATOR_ARITH set)");
+      arith_msg_shown = 1;
+
+    }
+
+    goto skip_arith;
+
+  }
+
   /**********************
    * ARITHMETIC INC/DEC *
    **********************/
@@ -4376,6 +4400,30 @@ static u8 mopt_common_fuzzing(afl_state_t *afl, MOpt_globals_t MOpt_globals) {
 skip_bitflip:
 
   if (afl->no_arith) { goto skip_arith; }
+
+  // Check if arith mutator should be disabled
+  static u8 mopt_disable_arith = 0xFF;
+  static u8 mopt_arith_msg_shown = 0;
+
+  if (unlikely(mopt_disable_arith == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_ARITH");
+    mopt_disable_arith = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(mopt_disable_arith)) {
+
+    if (unlikely(!mopt_arith_msg_shown)) {
+
+      ACTF("Arith mutator disabled (AFL_DISABLE_MUTATOR_ARITH set)");
+      mopt_arith_msg_shown = 1;
+
+    }
+
+    goto skip_arith;
+
+  }
 
   /**********************
    * ARITHMETIC INC/DEC *

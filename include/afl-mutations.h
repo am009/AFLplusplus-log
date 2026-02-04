@@ -1826,6 +1826,24 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
   }
 
+  // Check if arith mutator should be disabled in havoc
+  static u8 disable_arith_havoc = 0xFF;
+  static u8 arith_havoc_msg_shown = 0;
+
+  if (unlikely(disable_arith_havoc == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_ARITH");
+    disable_arith_havoc = (env_val && env_val[0]) ? 1 : 0;
+
+    if (disable_arith_havoc && !arith_havoc_msg_shown) {
+
+      ACTF("Arith mutator disabled in havoc (AFL_DISABLE_MUTATOR_ARITH set)");
+      arith_havoc_msg_shown = 1;
+
+    }
+
+  }
+
   if (max_len > tmp_buf_size) {
 
     if (tmp_buf) {
@@ -1964,6 +1982,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
         /* Randomly subtract from byte. */
 
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
         item = 1 + rand_below(afl, ARITH_MAX);
         buf[rand_below(afl, len)] -= item;
         break;
@@ -1974,6 +1993,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
         /* Randomly add to byte. */
 
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
         item = 1 + rand_below(afl, ARITH_MAX);
         buf[rand_below(afl, len)] += item;
         break;
@@ -1985,6 +2005,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Randomly subtract from word, little endian. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
 
         u32 pos = rand_below(afl, len - 1);
         item = 1 + rand_below(afl, ARITH_MAX);
@@ -1999,6 +2020,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Randomly subtract from word, big endian. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
 
         u32 pos = rand_below(afl, len - 1);
         item = 1 + rand_below(afl, ARITH_MAX);
@@ -2013,6 +2035,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Randomly add to word, little endian. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
 
         u32 pos = rand_below(afl, len - 1);
         item = 1 + rand_below(afl, ARITH_MAX);
@@ -2027,6 +2050,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Randomly add to word, big endian. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
 
         u32 pos = rand_below(afl, len - 1);
         item = 1 + rand_below(afl, ARITH_MAX);
@@ -2041,6 +2065,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Randomly subtract from dword, little endian. */
 
         if (unlikely(len < 4)) { break; }  // no retry
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
 
         u32 pos = rand_below(afl, len - 3);
         item = 1 + rand_below(afl, ARITH_MAX);
@@ -2055,6 +2080,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Randomly subtract from dword, big endian. */
 
         if (unlikely(len < 4)) { break; }  // no retry
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
 
         u32 pos = rand_below(afl, len - 3);
         item = 1 + rand_below(afl, ARITH_MAX);
@@ -2069,6 +2095,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Randomly add to dword, little endian. */
 
         if (unlikely(len < 4)) { break; }  // no retry
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
 
         u32 pos = rand_below(afl, len - 3);
         item = 1 + rand_below(afl, ARITH_MAX);
@@ -2083,6 +2110,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Randomly add to dword, big endian. */
 
         if (unlikely(len < 4)) { break; }  // no retry
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
 
         u32 pos = rand_below(afl, len - 3);
         item = 1 + rand_below(afl, ARITH_MAX);
@@ -2226,6 +2254,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
         /* Increase byte by 1. */
 
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
         buf[rand_below(afl, len)]++;
         break;
 
@@ -2235,6 +2264,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
         /* Decrease byte by 1. */
 
+        if (unlikely(disable_arith_havoc)) { goto retry_havoc_step; }
         buf[rand_below(afl, len)]--;
         break;
 
