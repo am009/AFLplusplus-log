@@ -1808,6 +1808,24 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
   static u8 *tmp_buf = NULL;
   static u32 tmp_buf_size = 0;
 
+  // Check if bitflip mutator should be disabled in havoc
+  static u8 disable_bitflip_havoc = 0xFF;
+  static u8 bitflip_havoc_msg_shown = 0;
+
+  if (unlikely(disable_bitflip_havoc == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_BITFLIP");
+    disable_bitflip_havoc = (env_val && env_val[0]) ? 1 : 0;
+
+    if (disable_bitflip_havoc && !bitflip_havoc_msg_shown) {
+
+      ACTF("Bitflip mutator disabled in havoc (AFL_DISABLE_MUTATOR_BITFLIP set)");
+      bitflip_havoc_msg_shown = 1;
+
+    }
+
+  }
+
   if (max_len > tmp_buf_size) {
 
     if (tmp_buf) {
@@ -1871,6 +1889,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       case MUT_FLIPBIT: {
 
         /* Flip a single bit somewhere. Spooky! */
+        if (unlikely(disable_bitflip_havoc)) { goto retry_havoc_step; }
         u8  bit = rand_below(afl, 8);
         u32 off = rand_below(afl, len);
         buf[off] ^= 1 << bit;
@@ -2224,7 +2243,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       case MUT_FLIP8: {
 
         /* Flip byte. */
-
+        if (unlikely(disable_bitflip_havoc)) { goto retry_havoc_step; }
         buf[rand_below(afl, len)] ^= 0xff;
         break;
 

@@ -637,6 +637,30 @@ u8 fuzz_one_original(afl_state_t *afl) {
    * SIMPLE BITFLIP (+dictionary construction) *
    *********************************************/
 
+  // Check if bitflip mutator should be disabled
+  static u8 disable_bitflip = 0xFF;
+  static u8 bitflip_msg_shown = 0;
+
+  if (unlikely(disable_bitflip == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_BITFLIP");
+    disable_bitflip = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(disable_bitflip)) {
+
+    if (unlikely(!bitflip_msg_shown)) {
+
+      ACTF("Bitflip mutator disabled (AFL_DISABLE_MUTATOR_BITFLIP set)");
+      bitflip_msg_shown = 1;
+
+    }
+
+    goto skip_bitflip;
+
+  }
+
 #define FLIP_BIT(_ar, _b)                     \
   do {                                        \
                                               \
@@ -3899,6 +3923,30 @@ static u8 mopt_common_fuzzing(afl_state_t *afl, MOpt_globals_t MOpt_globals) {
   /*********************************************
    * SIMPLE BITFLIP (+dictionary construction) *
    *********************************************/
+
+  // Check if bitflip mutator should be disabled
+  static u8 mopt_disable_bitflip = 0xFF;
+  static u8 mopt_bitflip_msg_shown = 0;
+
+  if (unlikely(mopt_disable_bitflip == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_BITFLIP");
+    mopt_disable_bitflip = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(mopt_disable_bitflip)) {
+
+    if (unlikely(!mopt_bitflip_msg_shown)) {
+
+      ACTF("Bitflip mutator disabled (AFL_DISABLE_MUTATOR_BITFLIP set)");
+      mopt_bitflip_msg_shown = 1;
+
+    }
+
+    goto skip_bitflip;
+
+  }
 
 #define FLIP_BIT(_ar, _b)                     \
   do {                                        \
