@@ -1722,6 +1722,30 @@ skip_arith:
 
 skip_interest:
 
+  // Check if dict_extra mutator should be disabled
+  static u8 disable_dict_extra = 0xFF;
+  static u8 dict_extra_msg_shown = 0;
+
+  if (unlikely(disable_dict_extra == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_DICT_EXTRA");
+    disable_dict_extra = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(disable_dict_extra)) {
+
+    if (unlikely(!dict_extra_msg_shown)) {
+
+      ACTF("Dict_extra mutator disabled (AFL_DISABLE_MUTATOR_DICT_EXTRA set)");
+      dict_extra_msg_shown = 1;
+
+    }
+
+    goto skip_user_extras;
+
+  }
+
   /********************
    * DICTIONARY STUFF *
    ********************/
@@ -5103,6 +5127,30 @@ skip_arith:
 #endif
 
 skip_interest:
+
+  // Check if dict_extra mutator should be disabled
+  static u8 mopt_disable_dict_extra = 0xFF;
+  static u8 mopt_dict_extra_msg_shown = 0;
+
+  if (unlikely(mopt_disable_dict_extra == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_DICT_EXTRA");
+    mopt_disable_dict_extra = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(mopt_disable_dict_extra)) {
+
+    if (unlikely(!mopt_dict_extra_msg_shown)) {
+
+      ACTF("Dict_extra mutator disabled (AFL_DISABLE_MUTATOR_DICT_EXTRA set)");
+      mopt_dict_extra_msg_shown = 1;
+
+    }
+
+    goto skip_user_extras;
+
+  }
 
   /********************
    * DICTIONARY STUFF *

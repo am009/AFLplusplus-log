@@ -1862,6 +1862,24 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
   }
 
+  // Check if dict_extra mutator should be disabled in havoc
+  static u8 disable_dict_extra_havoc = 0xFF;
+  static u8 dict_extra_havoc_msg_shown = 0;
+
+  if (unlikely(disable_dict_extra_havoc == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_DICT_EXTRA");
+    disable_dict_extra_havoc = (env_val && env_val[0]) ? 1 : 0;
+
+    if (disable_dict_extra_havoc && !dict_extra_havoc_msg_shown) {
+
+      ACTF("Dict_extra mutator disabled in havoc (AFL_DISABLE_MUTATOR_DICT_EXTRA set)");
+      dict_extra_havoc_msg_shown = 1;
+
+    }
+
+  }
+
   if (max_len > tmp_buf_size) {
 
     if (tmp_buf) {
@@ -2667,6 +2685,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       case MUT_EXTRA_OVERWRITE: {
 
         if (unlikely(!afl->extras_cnt)) { goto retry_havoc_step; }
+        if (unlikely(disable_dict_extra_havoc)) { goto retry_havoc_step; }
 
         /* Use the dictionary. */
 
@@ -2685,6 +2704,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       case MUT_EXTRA_INSERT: {
 
         if (unlikely(!afl->extras_cnt)) { goto retry_havoc_step; }
+        if (unlikely(disable_dict_extra_havoc)) { goto retry_havoc_step; }
 
         u32 use_extra = rand_below(afl, afl->extras_cnt);
         u32 extra_len = afl->extras[use_extra].len;
