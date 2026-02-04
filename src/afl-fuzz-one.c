@@ -552,7 +552,27 @@ u8 fuzz_one_original(afl_state_t *afl) {
 
   }
 
-  if (unlikely(afl->shm.cmplog_mode &&
+  // Check if cmplog should be disabled
+  static u8 disable_cmplog = 0xFF;
+  static u8 cmplog_msg_shown = 0;
+
+  if (unlikely(disable_cmplog == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_CMPLOG");
+    disable_cmplog = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(disable_cmplog)) {
+
+    if (unlikely(!cmplog_msg_shown)) {
+
+      ACTF("CMPLog disabled (AFL_DISABLE_CMPLOG set)");
+      cmplog_msg_shown = 1;
+
+    }
+
+  } else if (unlikely(afl->shm.cmplog_mode &&
                afl->queue_cur->colorized < afl->cmplog_lvl &&
                (u32)len <= afl->cmplog_max_filesize)) {
 
@@ -3977,7 +3997,27 @@ static u8 mopt_common_fuzzing(afl_state_t *afl, MOpt_globals_t MOpt_globals) {
 
   }
 
-  if (unlikely(afl->shm.cmplog_mode &&
+  // Check if cmplog should be disabled
+  static u8 mopt_disable_cmplog = 0xFF;
+  static u8 mopt_cmplog_msg_shown = 0;
+
+  if (unlikely(mopt_disable_cmplog == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_CMPLOG");
+    mopt_disable_cmplog = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(mopt_disable_cmplog)) {
+
+    if (unlikely(!mopt_cmplog_msg_shown)) {
+
+      ACTF("CMPLog disabled (AFL_DISABLE_CMPLOG set)");
+      mopt_cmplog_msg_shown = 1;
+
+    }
+
+  } else if (unlikely(afl->shm.cmplog_mode &&
                afl->queue_cur->colorized < afl->cmplog_lvl &&
                (u32)len <= afl->cmplog_max_filesize)) {
 
