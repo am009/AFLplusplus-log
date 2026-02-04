@@ -1916,6 +1916,24 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
   }
 
+  // Check if structural mutator should be disabled in havoc
+  static u8 disable_structural_havoc = 0xFF;
+  static u8 structural_havoc_msg_shown = 0;
+
+  if (unlikely(disable_structural_havoc == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_STRUCTURAL");
+    disable_structural_havoc = (env_val && env_val[0]) ? 1 : 0;
+
+    if (disable_structural_havoc && !structural_havoc_msg_shown) {
+
+      ACTF("Structural mutator disabled in havoc (AFL_DISABLE_MUTATOR_STRUCTURAL set)");
+      structural_havoc_msg_shown = 1;
+
+    }
+
+  }
+
   if (max_len > tmp_buf_size) {
 
     if (tmp_buf) {
@@ -2213,6 +2231,8 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
       case MUT_CLONE_COPY: {
 
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
+
         if (likely(len + HAVOC_BLK_XL < max_len)) {
 
           /* Clone bytes. */
@@ -2251,6 +2271,8 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       }
 
       case MUT_CLONE_FIXED: {
+
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
 
         if (likely(len + HAVOC_BLK_XL < max_len)) {
 
@@ -2296,6 +2318,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Overwrite bytes with a randomly selected chunk bytes. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
 
         u32 copy_len = choose_block_len(afl, len - 1);
         u32 copy_from = rand_below(afl, len - copy_len + 1);
@@ -2316,6 +2339,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Overwrite bytes with fixed bytes. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
 
         u32 copy_len = choose_block_len(afl, len - 1);
         u32 copy_to = rand_below(afl, len - copy_len + 1);
@@ -2360,6 +2384,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       case MUT_SWITCH: {
 
         if (unlikely(len < 4)) { break; }  // no retry
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
 
         /* Switch bytes. */
 
@@ -2406,6 +2431,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Delete bytes. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
 
         /* Don't delete too much. */
 
@@ -2424,6 +2450,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Shuffle bytes. */
 
         if (unlikely(len < 4)) { break; }  // no retry
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
 
         u32 blen = choose_block_len(afl, len - 1);
         u32 off = rand_below(afl, len - blen + 1);
@@ -2452,6 +2479,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Delete bytes. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
 
         /* Don't delete too much. */
 
@@ -2469,6 +2497,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       case MUT_INSERTONE: {
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_structural_havoc)) { goto retry_havoc_step; }
 
         u32 clone_len = 1;
         if (unlikely(len + clone_len > max_len)) { goto retry_havoc_step; }
