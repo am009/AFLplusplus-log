@@ -1898,6 +1898,24 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
   }
 
+  // Check if random_bytes mutator should be disabled in havoc
+  static u8 disable_random_bytes_havoc = 0xFF;
+  static u8 random_bytes_havoc_msg_shown = 0;
+
+  if (unlikely(disable_random_bytes_havoc == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_RANDOM_BYTES");
+    disable_random_bytes_havoc = (env_val && env_val[0]) ? 1 : 0;
+
+    if (disable_random_bytes_havoc && !random_bytes_havoc_msg_shown) {
+
+      ACTF("Random_bytes mutator disabled in havoc (AFL_DISABLE_MUTATOR_RANDOM_BYTES set)");
+      random_bytes_havoc_msg_shown = 1;
+
+    }
+
+  }
+
   if (max_len > tmp_buf_size) {
 
     if (tmp_buf) {
@@ -2185,6 +2203,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
            why not. We use XOR with 1-255 to eliminate the
            possibility of a no-op. */
 
+        if (unlikely(disable_random_bytes_havoc)) { goto retry_havoc_step; }
         u32 pos = rand_below(afl, len);
         item = 1 + rand_below(afl, 255);
         buf[pos] ^= item;
