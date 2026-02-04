@@ -1934,6 +1934,42 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
   }
 
+  // Check if ascii_num mutator should be disabled in havoc
+  static u8 disable_ascii_num_havoc = 0xFF;
+  static u8 ascii_num_havoc_msg_shown = 0;
+
+  if (unlikely(disable_ascii_num_havoc == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_ASCII_NUM");
+    disable_ascii_num_havoc = (env_val && env_val[0]) ? 1 : 0;
+
+    if (disable_ascii_num_havoc && !ascii_num_havoc_msg_shown) {
+
+      ACTF("Ascii_num mutator disabled in havoc (AFL_DISABLE_MUTATOR_ASCII_NUM set)");
+      ascii_num_havoc_msg_shown = 1;
+
+    }
+
+  }
+
+  // Check if splice mutator should be disabled in havoc
+  static u8 disable_splice_havoc = 0xFF;
+  static u8 splice_havoc_msg_shown = 0;
+
+  if (unlikely(disable_splice_havoc == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_SPLICE");
+    disable_splice_havoc = (env_val && env_val[0]) ? 1 : 0;
+
+    if (disable_splice_havoc && !splice_havoc_msg_shown) {
+
+      ACTF("Splice mutator disabled in havoc (AFL_DISABLE_MUTATOR_SPLICE set)");
+      splice_havoc_msg_shown = 1;
+
+    }
+
+  }
+
   if (max_len > tmp_buf_size) {
 
     if (tmp_buf) {
@@ -2526,6 +2562,8 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
       case MUT_ASCIINUM: {
 
+        if (unlikely(disable_ascii_num_havoc)) { goto retry_havoc_step; }
+
         if (unlikely(len < 4)) { break; }  // no retry
 
         u32 off = rand_below(afl, len), off2 = off, cnt = 0;
@@ -2707,6 +2745,8 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
       case MUT_INSERTASCIINUM: {
 
+        if (unlikely(disable_ascii_num_havoc)) { goto retry_havoc_step; }
+
         u32 ins_len = 1 + rand_below(afl, 8);
         u32 pos = rand_below(afl, len);
 
@@ -2835,6 +2875,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       case MUT_SPLICE_OVERWRITE: {
 
         if (unlikely(!splice_buf || !splice_len)) { goto retry_havoc_step; }
+        if (unlikely(disable_splice_havoc)) { goto retry_havoc_step; }
 
         /* overwrite mode */
 
@@ -2855,6 +2896,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
       case MUT_SPLICE_INSERT: {
 
         if (unlikely(!splice_buf || !splice_len)) { goto retry_havoc_step; }
+        if (unlikely(disable_splice_havoc)) { goto retry_havoc_step; }
 
         if (unlikely(len + HAVOC_BLK_XL > max_len)) { goto retry_havoc_step; }
 

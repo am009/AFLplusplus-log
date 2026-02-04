@@ -3647,6 +3647,30 @@ havoc_stage:
      splices them together at some offset, then relies on the havoc
      code to mutate that blob. */
 
+  // Check if splice mutator should be disabled
+  static u8 disable_splice = 0xFF;
+  static u8 splice_msg_shown = 0;
+
+  if (unlikely(disable_splice == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_SPLICE");
+    disable_splice = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(disable_splice)) {
+
+    if (unlikely(!splice_msg_shown)) {
+
+      ACTF("Splice mutator disabled (AFL_DISABLE_MUTATOR_SPLICE set)");
+      splice_msg_shown = 1;
+
+    }
+
+    goto skip_splice;
+
+  }
+
 retry_splicing:
 
   if (afl->use_splicing && splice_cycle++ < SPLICE_CYCLES &&
@@ -3712,6 +3736,8 @@ retry_splicing:
     goto custom_mutator_stage;
 
   }
+
+skip_splice:
 
 #endif                                                     /* !IGNORE_FINDS */
 
@@ -6372,6 +6398,30 @@ pacemaker_fuzzing:
        * SPLICING *
        ************/
 
+      // Check if splice mutator should be disabled
+      static u8 mopt_disable_splice = 0xFF;
+      static u8 mopt_splice_msg_shown = 0;
+
+      if (unlikely(mopt_disable_splice == 0xFF)) {
+
+        u8 *env_val = getenv("AFL_DISABLE_MUTATOR_SPLICE");
+        mopt_disable_splice = (env_val && env_val[0]) ? 1 : 0;
+
+      }
+
+      if (unlikely(mopt_disable_splice)) {
+
+        if (unlikely(!mopt_splice_msg_shown)) {
+
+          ACTF("Splice mutator disabled (AFL_DISABLE_MUTATOR_SPLICE set)");
+          mopt_splice_msg_shown = 1;
+
+        }
+
+        goto skip_splice_puppet;
+
+      }
+
     retry_splicing_puppet:
 
       if (afl->use_splicing &&
@@ -6443,6 +6493,8 @@ pacemaker_fuzzing:
         goto havoc_stage_puppet;
 
       }                                                  /* if splice_cycle */
+
+    skip_splice_puppet:
 
 #endif                                                     /* !IGNORE_FINDS */
 
