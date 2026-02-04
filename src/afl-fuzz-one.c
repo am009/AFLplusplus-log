@@ -1893,6 +1893,30 @@ skip_interest:
 
 skip_user_extras:
 
+  // Check if auto_extra mutator should be disabled
+  static u8 disable_auto_extra = 0xFF;
+  static u8 auto_extra_msg_shown = 0;
+
+  if (unlikely(disable_auto_extra == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_AUTO_EXTRA");
+    disable_auto_extra = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(disable_auto_extra)) {
+
+    if (unlikely(!auto_extra_msg_shown)) {
+
+      ACTF("Auto_extra mutator disabled (AFL_DISABLE_MUTATOR_AUTO_EXTRA set)");
+      auto_extra_msg_shown = 1;
+
+    }
+
+    goto skip_extras;
+
+  }
+
   if (!afl->a_extras_cnt) { goto skip_extras; }
 
   afl->stage_name = "auto extras (over)";
@@ -5288,6 +5312,30 @@ skip_interest:
 #endif
 
 skip_user_extras:
+
+  // Check if auto_extra mutator should be disabled
+  static u8 mopt_disable_auto_extra = 0xFF;
+  static u8 mopt_auto_extra_msg_shown = 0;
+
+  if (unlikely(mopt_disable_auto_extra == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_AUTO_EXTRA");
+    mopt_disable_auto_extra = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(mopt_disable_auto_extra)) {
+
+    if (unlikely(!mopt_auto_extra_msg_shown)) {
+
+      ACTF("Auto_extra mutator disabled (AFL_DISABLE_MUTATOR_AUTO_EXTRA set)");
+      mopt_auto_extra_msg_shown = 1;
+
+    }
+
+    goto skip_extras;
+
+  }
 
   if (!afl->a_extras_cnt) { goto skip_extras; }
 
