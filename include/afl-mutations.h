@@ -1844,6 +1844,24 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
   }
 
+  // Check if interesting mutator should be disabled in havoc
+  static u8 disable_interesting_havoc = 0xFF;
+  static u8 interesting_havoc_msg_shown = 0;
+
+  if (unlikely(disable_interesting_havoc == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_INTERESTING");
+    disable_interesting_havoc = (env_val && env_val[0]) ? 1 : 0;
+
+    if (disable_interesting_havoc && !interesting_havoc_msg_shown) {
+
+      ACTF("Interesting mutator disabled in havoc (AFL_DISABLE_MUTATOR_INTERESTING set)");
+      interesting_havoc_msg_shown = 1;
+
+    }
+
+  }
+
   if (max_len > tmp_buf_size) {
 
     if (tmp_buf) {
@@ -1920,6 +1938,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
 
         /* Set byte to interesting value. */
 
+        if (unlikely(disable_interesting_havoc)) { goto retry_havoc_step; }
         item = rand_below(afl, sizeof(interesting_8));
         buf[rand_below(afl, len)] = interesting_8[item];
         break;
@@ -1931,6 +1950,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Set word to interesting value, little endian. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_interesting_havoc)) { goto retry_havoc_step; }
 
         item = rand_below(afl, sizeof(interesting_16) >> 1);
         INSERT16(buf, rand_below(afl, len - 1), interesting_16[item]);
@@ -1944,6 +1964,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Set word to interesting value, big endian. */
 
         if (unlikely(len < 2)) { break; }  // no retry
+        if (unlikely(disable_interesting_havoc)) { goto retry_havoc_step; }
 
         item = rand_below(afl, sizeof(interesting_16) >> 1);
         INSERT16(buf, rand_below(afl, len - 1), SWAP16(interesting_16[item]));
@@ -1957,6 +1978,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Set dword to interesting value, little endian. */
 
         if (unlikely(len < 4)) { break; }  // no retry
+        if (unlikely(disable_interesting_havoc)) { goto retry_havoc_step; }
 
         item = rand_below(afl, sizeof(interesting_32) >> 2);
         INSERT32(buf, rand_below(afl, len - 3), interesting_32[item]);
@@ -1970,6 +1992,7 @@ inline u32 afl_mutate(afl_state_t *afl, u8 *buf, u32 len, u32 steps,
         /* Set dword to interesting value, big endian. */
 
         if (unlikely(len < 4)) { break; }  // no retry
+        if (unlikely(disable_interesting_havoc)) { goto retry_havoc_step; }
 
         item = rand_below(afl, sizeof(interesting_32) >> 2);
         INSERT32(buf, rand_below(afl, len - 3), SWAP32(interesting_32[item]));

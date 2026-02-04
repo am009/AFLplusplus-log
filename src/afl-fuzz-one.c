@@ -1441,6 +1441,30 @@ skip_bitflip:
 
 skip_arith:
 
+  // Check if interesting mutator should be disabled
+  static u8 disable_interesting = 0xFF;
+  static u8 interesting_msg_shown = 0;
+
+  if (unlikely(disable_interesting == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_INTERESTING");
+    disable_interesting = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(disable_interesting)) {
+
+    if (unlikely(!interesting_msg_shown)) {
+
+      ACTF("Interesting mutator disabled (AFL_DISABLE_MUTATOR_INTERESTING set)");
+      interesting_msg_shown = 1;
+
+    }
+
+    goto skip_interest;
+
+  }
+
   /**********************
    * INTERESTING VALUES *
    **********************/
@@ -4799,6 +4823,30 @@ skip_bitflip:
 #endif
 
 skip_arith:
+
+  // Check if interesting mutator should be disabled
+  static u8 mopt_disable_interesting = 0xFF;
+  static u8 mopt_interesting_msg_shown = 0;
+
+  if (unlikely(mopt_disable_interesting == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_MUTATOR_INTERESTING");
+    mopt_disable_interesting = (env_val && env_val[0]) ? 1 : 0;
+
+  }
+
+  if (unlikely(mopt_disable_interesting)) {
+
+    if (unlikely(!mopt_interesting_msg_shown)) {
+
+      ACTF("Interesting mutator disabled (AFL_DISABLE_MUTATOR_INTERESTING set)");
+      mopt_interesting_msg_shown = 1;
+
+    }
+
+    goto skip_interest;
+
+  }
 
   /**********************
    * INTERESTING VALUES *
