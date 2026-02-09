@@ -4087,6 +4087,12 @@ static u8 mopt_common_fuzzing(afl_state_t *afl, MOpt_globals_t MOpt_globals) {
   }
 
   doing_det = 1;
+  /* FUZZERLOG: log strategy */
+  static bool fuzzerlog_conf_done = false;
+  if (!fuzzerlog_conf_done) {
+      fuzzerlog_conf_done = true;
+      fuzzerlog_conf("mutator_sched_dtm");
+  }
 
   /*********************************************
    * SIMPLE BITFLIP (+dictionary construction) *

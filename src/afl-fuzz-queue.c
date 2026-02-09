@@ -140,12 +140,14 @@ void create_alias_table(afl_state_t *afl) {
 
           // Check if execution time bias should be disabled
           static u8 disable_exec_time_bias = 0xFF;
-          static u8 exec_time_bias_msg_shown = 0;
 
           if (unlikely(disable_exec_time_bias == 0xFF)) {
 
             u8 *env_val = getenv("AFL_DISABLE_EXEC_TIME_BIAS");
             disable_exec_time_bias = (env_val && env_val[0]) ? 1 : 0;
+            if (disable_exec_time_bias) {
+              ACTF("Execution time bias disabled (AFL_DISABLE_EXEC_TIME_BIAS set)");
+            }
 
           }
 
@@ -205,21 +207,18 @@ void create_alias_table(afl_state_t *afl) {
 
             }
 
-          } else if (unlikely(disable_exec_time_bias && !exec_time_bias_msg_shown)) {
-
-            ACTF("Execution time bias disabled (AFL_DISABLE_EXEC_TIME_BIAS set)");
-            exec_time_bias_msg_shown = 1;
-
           }
 
           // Check if seed length bias should be disabled
           static u8 disable_len_bias = 0xFF;
-          static u8 len_bias_msg_shown = 0;
 
           if (unlikely(disable_len_bias == 0xFF)) {
 
             u8 *env_val = getenv("AFL_DISABLE_SEED_LEN_BIAS");
             disable_len_bias = (env_val && env_val[0]) ? 1 : 0;
+            if (disable_len_bias) {
+              ACTF("Seed length bias disabled (AFL_DISABLE_SEED_LEN_BIAS set)");
+            }
 
           }
 
@@ -267,21 +266,18 @@ void create_alias_table(afl_state_t *afl) {
 
             }
 
-          } else if (unlikely(!len_bias_msg_shown)) {
-
-            ACTF("Seed length bias disabled (AFL_DISABLE_SEED_LEN_BIAS set)");
-            len_bias_msg_shown = 1;
-
           }
 
           // Check if coverage bias should be disabled
           static u8 disable_coverage_bias = 0xFF;
-          static u8 coverage_bias_msg_shown = 0;
 
           if (unlikely(disable_coverage_bias == 0xFF)) {
 
             u8 *env_val = getenv("AFL_DISABLE_COVERAGE_BIAS");
             disable_coverage_bias = (env_val && env_val[0]) ? 1 : 0;
+            if (disable_coverage_bias) {
+              ACTF("Coverage bias disabled (AFL_DISABLE_COVERAGE_BIAS set)");
+            }
 
           }
 
@@ -332,11 +328,6 @@ void create_alias_table(afl_state_t *afl) {
               weight *= 0.75;
 
             }
-
-          } else if (unlikely(!coverage_bias_msg_shown)) {
-
-            ACTF("Coverage bias disabled (AFL_DISABLE_COVERAGE_BIAS set)");
-            coverage_bias_msg_shown = 1;
 
           }
 
@@ -1317,7 +1308,20 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
   // Longer execution time means longer work on the input, the deeper in
   // coverage, the better the fuzzing, right? -mh
 
-  if (likely(afl->schedule < RARE) && likely(!afl->fixed_seed)) {
+  // Check if execution time bias should be disabled
+  static u8 disable_exec_time_bias_score = 0xFF;
+
+  if (unlikely(disable_exec_time_bias_score == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_EXEC_TIME_BIAS");
+    disable_exec_time_bias_score = (env_val && env_val[0]) ? 1 : 0;
+    if (disable_exec_time_bias_score) {
+      ACTF("Execution time bias in calculate_score disabled (AFL_DISABLE_EXEC_TIME_BIAS set)");
+    }
+
+  }
+
+  if (likely(!disable_exec_time_bias_score && afl->schedule < RARE) && likely(!afl->fixed_seed)) {
 
     /* FUZZERLOG: log strategy */
     static bool fuzzerlog_conf_prefer_faster_seeds2_done = false;
@@ -1361,42 +1365,66 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
   /* Adjust score based on bitmap size. The working theory is that better
      coverage translates to better targets. Multiplier from 0.25x to 3x. */
 
-  /* FUZZERLOG: log strategy */
-  static bool fuzzerlog_conf_prefer_higher_coverage_seeds2_done = false;
-  if (!fuzzerlog_conf_prefer_higher_coverage_seeds2_done) {
-    fuzzerlog_conf_prefer_higher_coverage_seeds2_done = true;
-    fuzzerlog_conf("prefer_higher_coverage_seeds2");
+  // Check if coverage bias should be disabled
+  static u8 disable_coverage_bias_score = 0xFF;
+
+  if (unlikely(disable_coverage_bias_score == 0xFF)) {
+
+    u8 *env_val = getenv("AFL_DISABLE_COVERAGE_BIAS");
+    disable_coverage_bias_score = (env_val && env_val[0]) ? 1 : 0;
+    if (disable_coverage_bias_score) {
+      ACTF("Coverage bias in calculate_score disabled (AFL_DISABLE_COVERAGE_BIAS set)");
+    }
+
   }
 
-  if (q->bitmap_size * 0.3 > avg_bitmap_size) {
+  if (likely(!disable_coverage_bias_score)) {
 
-    perf_score *= 3;
+    /* FUZZERLOG: log strategy */
+    static bool fuzzerlog_conf_prefer_higher_coverage_seeds2_done = false;
+    if (!fuzzerlog_conf_prefer_higher_coverage_seeds2_done) {
+      fuzzerlog_conf_prefer_higher_coverage_seeds2_done = true;
+      fuzzerlog_conf("prefer_higher_coverage_seeds2");
+    }
 
-  } else if (q->bitmap_size * 0.5 > avg_bitmap_size) {
+    if (q->bitmap_size * 0.3 > avg_bitmap_size) {
 
-    perf_score *= 2;
+      perf_score *= 3;
 
-  } else if (q->bitmap_size * 0.75 > avg_bitmap_size) {
+    } else if (q->bitmap_size * 0.5 > avg_bitmap_size) {
 
-    perf_score *= 1.5;
+      perf_score *= 2;
 
-  } else if (q->bitmap_size * 3 < avg_bitmap_size) {
+    } else if (q->bitmap_size * 0.75 > avg_bitmap_size) {
 
-    perf_score *= 0.25;
+      perf_score *= 1.5;
 
-  } else if (q->bitmap_size * 2 < avg_bitmap_size) {
+    } else if (q->bitmap_size * 3 < avg_bitmap_size) {
 
-    perf_score *= 0.5;
+      perf_score *= 0.25;
 
-  } else if (q->bitmap_size * 1.5 < avg_bitmap_size) {
+    } else if (q->bitmap_size * 2 < avg_bitmap_size) {
 
-    perf_score *= 0.75;
+      perf_score *= 0.5;
+
+    } else if (q->bitmap_size * 1.5 < avg_bitmap_size) {
+
+      perf_score *= 0.75;
+
+    }
 
   }
 
   /* Adjust score based on handicap. Handicap is proportional to how late
      in the game we learned about this path. Latecomers are allowed to run
      for a bit longer until they catch up with the rest. */
+
+  /* FUZZERLOG: log strategy */
+  static bool fuzzerlog_conf_prefer_handicap_seeds_done = false;
+  if (!fuzzerlog_conf_prefer_handicap_seeds_done) {
+    fuzzerlog_conf_prefer_handicap_seeds_done = true;
+    fuzzerlog_conf("prefer_handicap_seeds");
+  }
 
   if (q->handicap >= 4) {
 

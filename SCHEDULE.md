@@ -23,7 +23,7 @@
 - prefer_deeper_stack_seeds
 - prefer_diverse_path_seeds
 - prefer_less_selected_seeds
-- prefer_shallow_depth_seeds
+- prefer_deeper_depth_seeds
 
 
 # AFL++ 种子调度机制分析
