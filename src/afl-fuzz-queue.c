@@ -26,6 +26,7 @@
 #include <limits.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdbool.h>
 
 #ifdef _STANDALONE_MODULE
 void minimize_bits(afl_state_t *afl, u8 *dst, u8 *src) {
@@ -125,6 +126,13 @@ void create_alias_table(afl_state_t *afl) {
 
           if (unlikely(afl->schedule >= FAST && afl->schedule <= RARE)) {
 
+            /* FUZZERLOG: log strategy */
+            static bool fuzzerlog_conf_prefer_less_selected_seeds1_done = false;
+            if (!fuzzerlog_conf_prefer_less_selected_seeds1_done) {
+              fuzzerlog_conf_prefer_less_selected_seeds1_done = true;
+              fuzzerlog_conf("prefer_less_selected_seeds1");
+            }
+
             u32 hits = afl->n_fuzz[q->n_fuzz_entry];
             if (likely(hits)) { weight /= (log10(hits) + 1); }
 
@@ -142,6 +150,13 @@ void create_alias_table(afl_state_t *afl) {
           }
 
           if (likely(!disable_exec_time_bias && afl->schedule < RARE)) {
+
+            /* FUZZERLOG: log strategy */
+            static bool fuzzerlog_conf_prefer_faster_seeds1_done = false;
+            if (!fuzzerlog_conf_prefer_faster_seeds1_done) {
+              fuzzerlog_conf_prefer_faster_seeds1_done = true;
+              fuzzerlog_conf("prefer_faster_seeds1");
+            }
 
             double t = q->exec_us / avg_exec_us;
 
@@ -210,6 +225,13 @@ void create_alias_table(afl_state_t *afl) {
 
           if (likely(!disable_len_bias)) {
 
+            /* FUZZERLOG: log strategy */
+            static bool fuzzerlog_conf_prefer_shorter_seeds1_done = false;
+            if (!fuzzerlog_conf_prefer_shorter_seeds1_done) {
+              fuzzerlog_conf_prefer_shorter_seeds1_done = true;
+              fuzzerlog_conf("prefer_shorter_seeds");
+            }
+
             double l = q->len / avg_len;
             if (likely(l < 0.1)) {
 
@@ -265,6 +287,13 @@ void create_alias_table(afl_state_t *afl) {
 
           if (likely(!disable_coverage_bias)) {
 
+            /* FUZZERLOG: log strategy */
+            static bool fuzzerlog_conf_prefer_higher_coverage_seeds1_done = false;
+            if (!fuzzerlog_conf_prefer_higher_coverage_seeds1_done) {
+              fuzzerlog_conf_prefer_higher_coverage_seeds1_done = true;
+              fuzzerlog_conf("prefer_higher_coverage_seeds1");
+            }
+
             double bms = q->bitmap_size / avg_bitmap_size;
             if (likely(bms < 0.1)) {
 
@@ -311,7 +340,16 @@ void create_alias_table(afl_state_t *afl) {
 
           }
 
-          if (unlikely(!q->was_fuzzed)) { weight *= 2.5; }
+          if (unlikely(!q->was_fuzzed)) {
+            /* FUZZERLOG: log strategy */
+            static bool fuzzerlog_conf_prefer_fresh_seeds1_done = false;
+            if (!fuzzerlog_conf_prefer_fresh_seeds1_done) {
+              fuzzerlog_conf_prefer_fresh_seeds1_done = true;
+              fuzzerlog_conf("prefer_unfuzzed_seeds");
+            }
+
+            weight *= 2.5;
+          }
           if (unlikely(q->fs_redundant)) { weight *= 0.75; }
 
         }
@@ -325,6 +363,13 @@ void create_alias_table(afl_state_t *afl) {
     }
 
     if (unlikely(afl->schedule == MMOPT) && afl->queued_discovered) {
+
+      /* FUZZERLOG: log strategy */
+      static bool fuzzerlog_conf_prefer_fresh_seeds2_done = false;
+      if (!fuzzerlog_conf_prefer_fresh_seeds2_done) {
+        fuzzerlog_conf_prefer_fresh_seeds2_done = true;
+        fuzzerlog_conf("prefer_fresh_seeds2");
+      }
 
       u32 cnt = afl->queued_discovered >= 5 ? 5 : afl->queued_discovered;
 
@@ -1274,6 +1319,13 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
   if (likely(afl->schedule < RARE) && likely(!afl->fixed_seed)) {
 
+    /* FUZZERLOG: log strategy */
+    static bool fuzzerlog_conf_prefer_faster_seeds2_done = false;
+    if (!fuzzerlog_conf_prefer_faster_seeds2_done) {
+      fuzzerlog_conf_prefer_faster_seeds2_done = true;
+      fuzzerlog_conf("prefer_faster_seeds2");
+    }
+
     if (q->exec_us * 0.1 > avg_exec_us) {
 
       perf_score = 10;
@@ -1308,6 +1360,13 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
   /* Adjust score based on bitmap size. The working theory is that better
      coverage translates to better targets. Multiplier from 0.25x to 3x. */
+
+  /* FUZZERLOG: log strategy */
+  static bool fuzzerlog_conf_prefer_higher_coverage_seeds2_done = false;
+  if (!fuzzerlog_conf_prefer_higher_coverage_seeds2_done) {
+    fuzzerlog_conf_prefer_higher_coverage_seeds2_done = true;
+    fuzzerlog_conf("prefer_higher_coverage_seeds2");
+  }
 
   if (q->bitmap_size * 0.3 > avg_bitmap_size) {
 
@@ -1355,6 +1414,13 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
      deeper test cases is more likely to reveal stuff that can't be
      discovered with traditional fuzzers. */
 
+  /* FUZZERLOG: log strategy */
+  static bool fuzzerlog_conf_prefer_deeper_stack_seeds1_done = false;
+  if (!fuzzerlog_conf_prefer_deeper_stack_seeds1_done) {
+    fuzzerlog_conf_prefer_deeper_stack_seeds1_done = true;
+    fuzzerlog_conf("prefer_deeper_stack_seeds1");
+  }
+
   switch (q->depth) {
 
     case 0 ... 3:
@@ -1390,6 +1456,15 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
       break;
 
     case COE:
+      /* FUZZERLOG: log strategy */
+      {
+        static bool fuzzerlog_conf_prefer_less_selected_seeds2_done = false;
+        if (!fuzzerlog_conf_prefer_less_selected_seeds2_done) {
+          fuzzerlog_conf_prefer_less_selected_seeds2_done = true;
+          fuzzerlog_conf("prefer_less_selected_seeds2");
+        }
+      }
+
       fuzz_mu = 0.0;
       n_items = 0;
 
@@ -1423,6 +1498,14 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
     // Fall through
     case FAST:
+      /* FUZZERLOG: log strategy */
+      {
+        static bool fuzzerlog_conf_prefer_less_selected_seeds3_done = false;
+        if (!fuzzerlog_conf_prefer_less_selected_seeds3_done) {
+          fuzzerlog_conf_prefer_less_selected_seeds3_done = true;
+          fuzzerlog_conf("prefer_less_selected_seeds3");
+        }
+      }
 
       // Don't modify unfuzzed seeds
       if (!q->fuzz_level) break;
@@ -1463,6 +1546,15 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
       break;
 
     case LIN:
+      /* FUZZERLOG: log strategy */
+      {
+        static bool fuzzerlog_conf_prefer_less_selected_seeds4_done = false;
+        if (!fuzzerlog_conf_prefer_less_selected_seeds4_done) {
+          fuzzerlog_conf_prefer_less_selected_seeds4_done = true;
+          fuzzerlog_conf("prefer_less_selected_seeds4");
+        }
+      }
+
       // Don't modify perf_score for unfuzzed seeds
       if (!q->fuzz_level) break;
 
@@ -1470,6 +1562,15 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
       break;
 
     case QUAD:
+      /* FUZZERLOG: log strategy */
+      {
+        static bool fuzzerlog_conf_prefer_less_selected_seeds5_done = false;
+        if (!fuzzerlog_conf_prefer_less_selected_seeds5_done) {
+          fuzzerlog_conf_prefer_less_selected_seeds5_done = true;
+          fuzzerlog_conf("prefer_less_selected_seeds5");
+        }
+      }
+
       // Don't modify perf_score for unfuzzed seeds
       if (!q->fuzz_level) break;
 
@@ -1478,6 +1579,15 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
       break;
 
     case MMOPT:
+      /* FUZZERLOG: log strategy */
+      {
+        static bool fuzzerlog_conf_prefer_deeper_stack_seeds2_done = false;
+        if (!fuzzerlog_conf_prefer_deeper_stack_seeds2_done) {
+          fuzzerlog_conf_prefer_deeper_stack_seeds2_done = true;
+          fuzzerlog_conf("prefer_deeper_stack_seeds2");
+        }
+      }
+
       /* -- this was a more complex setup, which is good, but competed with
          -- rare. the simpler algo however is good when rare is not.
         // the newer the entry, the higher the pref_score
@@ -1493,6 +1603,14 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
       break;
 
     case RARE:
+      /* FUZZERLOG: log strategy */
+      {
+        static bool fuzzerlog_conf_prefer_best_coverage_seeds_done = false;
+        if (!fuzzerlog_conf_prefer_best_coverage_seeds_done) {
+          fuzzerlog_conf_prefer_best_coverage_seeds_done = true;
+          fuzzerlog_conf("prefer_best_byte_coverage_seeds");
+        }
+      }
 
       // increase the score for every bitmap byte for which this entry
       // is the top contender
@@ -1518,6 +1636,13 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
   // MOpt mode
   if (afl->limit_time_sig != 0 && afl->max_depth - q->depth < 3) {
+
+    /* FUZZERLOG: log strategy */
+    static bool fuzzerlog_conf_prefer_deeper_stack_seeds3_done = false;
+    if (!fuzzerlog_conf_prefer_deeper_stack_seeds3_done) {
+      fuzzerlog_conf_prefer_deeper_stack_seeds3_done = true;
+      fuzzerlog_conf("prefer_deeper_stack_seeds3");
+    }
 
     perf_score *= 2;
 

@@ -167,7 +167,7 @@ endif
 
 ifdef DEBUG
   $(info Compiling DEBUG version of binaries)
-  override CFLAGS += -ggdb3 -O0 -Wall -Wextra -Werror $(CFLAGS_OPT)
+  override CFLAGS += -ggdb3 -O0 -Wall -Wextra $(CFLAGS_OPT)
 else
   CFLAGS ?= -O2 $(CFLAGS_OPT) # -funroll-loops is slower on modern compilers
 endif
@@ -282,7 +282,7 @@ endif
 
 COMM_HDR    = include/alloc-inl.h include/config.h include/debug.h include/types.h include/afl-fuzz.h include/hash.h include/sharedmem.h include/forkserver.h include/common.h include/list.h
 
-ifeq "$(shell echo '$(HASH)include <Python.h>@int main() {return 0; }' | tr @ '\n' | $(CC) $(CFLAGS) -x c - -o .test $(PYTHON_INCLUDE) $(LDFLAGS) $(PYTHON_LIB) 2>/dev/null && echo 1 || echo 0 ; rm -f .test )" "1"
+ifeq "$(shell echo '$(HASH)include <Python.h>@int main() {return 0; }' | tr @ '\n' | $(CC) $(CFLAGS) -x c - -o .test $(PYTHON_INCLUDE) $(LDFLAGS) $(PYTHON_LIB) 2>/dev/null && echo 0 || echo 0 ; rm -f .test )" "1"
 	PYTHON_OK=1
 	PYFLAGS=-DUSE_PYTHON $(PYTHON_INCLUDE) $(LDFLAGS) $(PYTHON_LIB) -DPYTHON_VERSION="\"$(PYTHON_VERSION)\""
 else

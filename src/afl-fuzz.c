@@ -125,6 +125,7 @@ fuzzerlog_start_handle fuzzerlog_start;
 fuzzerlog_end_handle fuzzerlog_end;
 fuzzerlog_start_exec_target_handle fuzzerlog_start_exec_target;
 fuzzerlog_end_exec_target_handle fuzzerlog_end_exec_target;
+fuzzerlog_conf_handle fuzzerlog_conf;
 
 void *fuzzer_log_lib;
 
@@ -2670,6 +2671,10 @@ int main(int argc, char **argv_orig, char **envp) {
   fuzzerlog_end_exec_target = dlsym(fuzzer_log_lib, "fuzzerlog_end_exec_target");
   if (fuzzerlog_end_exec_target == NULL) {
     ABORT("fuzzer-log-lib: cannot found fuzzerlog_end_exec_target: %s", dlerror());
+  }
+  fuzzerlog_conf = dlsym(fuzzer_log_lib, "fuzzerlog_conf");
+  if (fuzzerlog_conf == NULL) {
+    ABORT("fuzzer-log-lib: cannot found fuzzerlog_conf: %s", dlerror());
   }
 
   fuzzerlog_start();
