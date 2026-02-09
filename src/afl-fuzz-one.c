@@ -6955,9 +6955,31 @@ u8 fuzz_one(afl_state_t *afl) {
        limit_time_sig  < 0 both are run
   */
 
-  if (afl->limit_time_sig <= 0) { key_val_lv_1 = fuzz_one_original(afl); }
+  if (afl->limit_time_sig <= 0) {
+
+    /* FUZZERLOG: log havoc strategy */
+    static bool fuzzerlog_havoc_conf_done = false;
+    if (!fuzzerlog_havoc_conf_done) {
+
+      fuzzerlog_havoc_conf_done = true;
+      fuzzerlog_conf("mutator_sched_havoc");
+
+    }
+
+    key_val_lv_1 = fuzz_one_original(afl);
+
+  }
 
   if (afl->limit_time_sig != 0) {
+
+    /* FUZZERLOG: log mopt strategy */
+    static bool fuzzerlog_mopt_conf_done = false;
+    if (!fuzzerlog_mopt_conf_done) {
+
+      fuzzerlog_mopt_conf_done = true;
+      fuzzerlog_conf("mutator_sched_mopt");
+
+    }
 
     if (afl->key_module == 0) {
 
