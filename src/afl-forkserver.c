@@ -2189,6 +2189,8 @@ fsrv_run_result_t __attribute__((hot)) afl_fsrv_run_target(
 
   }
 
+  /* FUZZERLOG: add one exec chance */
+  fuzzerlog_increase_chances();
   if (fuzzerlog_start_exec_target) {
     fuzzerlog_start_exec_target();
   }

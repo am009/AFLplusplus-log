@@ -1469,18 +1469,7 @@ u8 __attribute__((hot)) common_fuzz_stuff(afl_state_t *afl, u8 *out_buf,
 
   }
 
-  /* FUZZERLOG: add one exec chance */
-  fuzzerlog_increase_chances();
-  // fuzzerlog_reset_mutator_names();
-  if (fuzzerlog_start_exec_target) {
-    fuzzerlog_start_exec_target();
-  }
-
   fault = fuzz_run_target(afl, &afl->fsrv, afl->fsrv.exec_tmout);
-
-  if (fuzzerlog_end_exec_target) {
-    fuzzerlog_end_exec_target();
-  }
 
   if (afl->stop_soon) { return 1; }
 
