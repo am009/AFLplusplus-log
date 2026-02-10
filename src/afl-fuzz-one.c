@@ -5804,6 +5804,7 @@ pacemaker_fuzzing:
 
             case 0:
               /* Flip a single bit somewhere. Spooky! */
+              if (unlikely(mopt_havoc_disable_bitflip)) { break; }
               FLIP_BIT(out_buf, rand_below(afl, temp_len << 3));
               MOpt_globals.cycles_v2[STAGE_FLIP1]++;
               /* FUZZERLOG: add mutator name */
@@ -5816,6 +5817,7 @@ pacemaker_fuzzing:
 
             case 1:
               if (temp_len < 2) { break; }
+              if (unlikely(mopt_havoc_disable_bitflip)) { break; }
               temp_len_puppet = rand_below(afl, (temp_len << 3) - 1);
               FLIP_BIT(out_buf, temp_len_puppet);
               FLIP_BIT(out_buf, temp_len_puppet + 1);
@@ -5830,6 +5832,7 @@ pacemaker_fuzzing:
 
             case 2:
               if (temp_len < 2) { break; }
+              if (unlikely(mopt_havoc_disable_bitflip)) { break; }
               temp_len_puppet = rand_below(afl, (temp_len << 3) - 3);
               FLIP_BIT(out_buf, temp_len_puppet);
               FLIP_BIT(out_buf, temp_len_puppet + 1);
@@ -5846,6 +5849,7 @@ pacemaker_fuzzing:
 
             case 3:
               if (temp_len < 4) { break; }
+              if (unlikely(mopt_havoc_disable_bitflip)) { break; }
               out_buf[rand_below(afl, temp_len)] ^= 0xFF;
               MOpt_globals.cycles_v2[STAGE_FLIP8]++;
               /* FUZZERLOG: add mutator name */
@@ -5858,6 +5862,7 @@ pacemaker_fuzzing:
 
             case 4:
               if (temp_len < 8) { break; }
+              if (unlikely(mopt_havoc_disable_bitflip)) { break; }
               *(u16 *)(out_buf + rand_below(afl, temp_len - 1)) ^= 0xFFFF;
               MOpt_globals.cycles_v2[STAGE_FLIP16]++;
               /* FUZZERLOG: add mutator name */
@@ -5870,6 +5875,7 @@ pacemaker_fuzzing:
 
             case 5:
               if (temp_len < 8) { break; }
+              if (unlikely(mopt_havoc_disable_bitflip)) { break; }
               *(u32 *)(out_buf + rand_below(afl, temp_len - 3)) ^= 0xFFFFFFFF;
               MOpt_globals.cycles_v2[STAGE_FLIP32]++;
               /* FUZZERLOG: add mutator name */
@@ -5881,6 +5887,7 @@ pacemaker_fuzzing:
               break;
 
             case 6:
+              if (unlikely(mopt_havoc_disable_arith)) { break; }
               out_buf[rand_below(afl, temp_len)] -=
                   1 + rand_below(afl, ARITH_MAX);
               out_buf[rand_below(afl, temp_len)] +=
@@ -5897,6 +5904,7 @@ pacemaker_fuzzing:
             case 7:
               /* Randomly subtract from word, random endian. */
               if (temp_len < 8) { break; }
+              if (unlikely(mopt_havoc_disable_arith)) { break; }
               if (rand_below(afl, 2)) {
 
                 u32 pos = rand_below(afl, temp_len - 1);
@@ -5958,6 +5966,7 @@ pacemaker_fuzzing:
             case 8:
               /* Randomly subtract from dword, random endian. */
               if (temp_len < 8) { break; }
+              if (unlikely(mopt_havoc_disable_arith)) { break; }
               if (rand_below(afl, 2)) {
 
                 u32 pos = rand_below(afl, temp_len - 3);
@@ -6021,6 +6030,7 @@ pacemaker_fuzzing:
             case 9:
               /* Set byte to interesting value. */
               if (temp_len < 4) { break; }
+              if (unlikely(mopt_havoc_disable_interesting)) { break; }
               out_buf[rand_below(afl, temp_len)] =
                   interesting_8[rand_below(afl, sizeof(interesting_8))];
               MOpt_globals.cycles_v2[STAGE_INTEREST8]++;
@@ -6035,6 +6045,7 @@ pacemaker_fuzzing:
             case 10:
               /* Set word to interesting value, randomly choosing endian. */
               if (temp_len < 8) { break; }
+              if (unlikely(mopt_havoc_disable_interesting)) { break; }
               if (rand_below(afl, 2)) {
         /* FUZZERLOG: log mutator name */
         fuzzerlog_add_mutator_name("mopt_havoc_interesting_16_le");
@@ -6068,6 +6079,7 @@ pacemaker_fuzzing:
               /* Set dword to interesting value, randomly choosing endian. */
 
               if (temp_len < 8) { break; }
+              if (unlikely(mopt_havoc_disable_interesting)) { break; }
 
               if (rand_below(afl, 2)) {
         /* FUZZERLOG: log mutator name */
@@ -6103,6 +6115,7 @@ pacemaker_fuzzing:
                  why not. We use XOR with 1-255 to eliminate the
                  possibility of a no-op. */
 
+              if (unlikely(mopt_havoc_disable_random_bytes)) { break; }
               out_buf[rand_below(afl, temp_len)] ^= 1 + rand_below(afl, 255);
               MOpt_globals.cycles_v2[STAGE_RANDOMBYTE]++;
           /* FUZZERLOG: add mutator name */
@@ -6122,6 +6135,7 @@ pacemaker_fuzzing:
               u32 del_from, del_len;
 
               if (temp_len < 2) { break; }
+              if (unlikely(mopt_havoc_disable_structural)) { break; }
 
               /* Don't delete too much. */
 
@@ -6147,6 +6161,7 @@ pacemaker_fuzzing:
 
             case 14:
 
+              if (unlikely(mopt_havoc_disable_structural)) { break; }
               if (temp_len + HAVOC_BLK_XL < MAX_FILE) {
 
                 /* Clone bytes (75%) or insert a block of constant bytes (25%).
@@ -6222,6 +6237,7 @@ pacemaker_fuzzing:
               u32 copy_from, copy_to, copy_len;
 
               if (temp_len < 2) { break; }
+              if (unlikely(mopt_havoc_disable_structural)) { break; }
 
               copy_len = choose_block_len(afl, temp_len - 1);
 
@@ -6281,6 +6297,7 @@ pacemaker_fuzzing:
                   /* No user-specified extras or odds in our favor. Let's use an
                     auto-detected one. */
 
+                  if (unlikely(mopt_havoc_disable_auto_extra)) { break; }
                   u32 use_extra = rand_below(afl, afl->a_extras_cnt);
                   u32 extra_len = afl->a_extras[use_extra].len;
 
@@ -6301,6 +6318,7 @@ pacemaker_fuzzing:
 
                   /* No auto extras or odds in our favor. Use the dictionary. */
 
+                  if (unlikely(mopt_havoc_disable_dict_extra)) { break; }
                   u32 use_extra = rand_below(afl, afl->extras_cnt);
                   u32 extra_len = afl->extras[use_extra].len;
 
@@ -6339,6 +6357,7 @@ pacemaker_fuzzing:
                 if (!afl->extras_cnt ||
                     (afl->a_extras_cnt && rand_below(afl, 2))) {
 
+                  if (unlikely(mopt_havoc_disable_auto_extra)) { break; }
                   use_extra = rand_below(afl, afl->a_extras_cnt);
                   extra_len = afl->a_extras[use_extra].len;
                   ptr = afl->a_extras[use_extra].data;
@@ -6352,6 +6371,7 @@ pacemaker_fuzzing:
 
                 } else {
 
+                  if (unlikely(mopt_havoc_disable_dict_extra)) { break; }
                   use_extra = rand_below(afl, afl->extras_cnt);
                   extra_len = afl->extras[use_extra].len;
                   ptr = afl->extras[use_extra].data;
@@ -6383,6 +6403,7 @@ pacemaker_fuzzing:
 
               } else {
 
+                if (unlikely(mopt_havoc_disable_splice)) break;
                 if (unlikely(afl->ready_for_splicing_count < 2)) break;
 
                 u32 tid;
