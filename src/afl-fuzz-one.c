@@ -2307,6 +2307,75 @@ havoc_stage:
   /* We essentially just do several thousand runs (depending on perf_score)
      where we take the input file and make random stacked tweaks. */
 
+  /* Check if mutators should be disabled in havoc (inline version) */
+  static u8 havoc_disable_bitflip = 0xFF;
+  static u8 havoc_disable_arith = 0xFF;
+  static u8 havoc_disable_interesting = 0xFF;
+  static u8 havoc_disable_dict_extra = 0xFF;
+  static u8 havoc_disable_auto_extra = 0xFF;
+  static u8 havoc_disable_random_bytes = 0xFF;
+  static u8 havoc_disable_structural = 0xFF;
+  static u8 havoc_disable_ascii_num = 0xFF;
+  static u8 havoc_disable_splice = 0xFF;
+  static u8 havoc_msg_shown = 0;
+
+  if (unlikely(havoc_disable_bitflip == 0xFF)) {
+
+    u8 *env_val;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_BITFLIP");
+    havoc_disable_bitflip = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_ARITH");
+    havoc_disable_arith = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_INTERESTING");
+    havoc_disable_interesting = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_DICT_EXTRA");
+    havoc_disable_dict_extra = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_AUTO_EXTRA");
+    havoc_disable_auto_extra = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_RANDOM_BYTES");
+    havoc_disable_random_bytes = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_STRUCTURAL");
+    havoc_disable_structural = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_ASCII_NUM");
+    havoc_disable_ascii_num = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_SPLICE");
+    havoc_disable_splice = (env_val && env_val[0]) ? 1 : 0;
+
+    if (!havoc_msg_shown) {
+
+      if (havoc_disable_bitflip)
+        ACTF("Bitflip mutator disabled in havoc (AFL_DISABLE_MUTATOR_BITFLIP)");
+      if (havoc_disable_arith)
+        ACTF("Arith mutator disabled in havoc (AFL_DISABLE_MUTATOR_ARITH)");
+      if (havoc_disable_interesting)
+        ACTF("Interesting mutator disabled in havoc (AFL_DISABLE_MUTATOR_INTERESTING)");
+      if (havoc_disable_dict_extra)
+        ACTF("Dict_extra mutator disabled in havoc (AFL_DISABLE_MUTATOR_DICT_EXTRA)");
+      if (havoc_disable_auto_extra)
+        ACTF("Auto_extra mutator disabled in havoc (AFL_DISABLE_MUTATOR_AUTO_EXTRA)");
+      if (havoc_disable_random_bytes)
+        ACTF("Random_bytes mutator disabled in havoc (AFL_DISABLE_MUTATOR_RANDOM_BYTES)");
+      if (havoc_disable_structural)
+        ACTF("Structural mutator disabled in havoc (AFL_DISABLE_MUTATOR_STRUCTURAL)");
+      if (havoc_disable_ascii_num)
+        ACTF("Ascii_num mutator disabled in havoc (AFL_DISABLE_MUTATOR_ASCII_NUM)");
+      if (havoc_disable_splice)
+        ACTF("Splice mutator disabled in havoc (AFL_DISABLE_MUTATOR_SPLICE)");
+      havoc_msg_shown = 1;
+
+    }
+
+  }
+
   u32 *mutation_array;
   u32  stack_max, rand_max;  // stack_max_pow = afl->havoc_stack_pow2;
 
@@ -2446,6 +2515,7 @@ havoc_stage:
         case MUT_FLIPBIT: {
 
           /* Flip a single bit somewhere. Spooky! */
+          if (unlikely(havoc_disable_bitflip)) { goto retry_havoc_step; }
           u8  bit = rand_below(afl, 8);
           u32 off = rand_below(afl, temp_len);
           out_buf[off] ^= 1 << bit;
@@ -2465,6 +2535,7 @@ havoc_stage:
 
           /* Set byte to interesting value. */
 
+          if (unlikely(havoc_disable_interesting)) { goto retry_havoc_step; }
           item = rand_below(afl, sizeof(interesting_8));
           /* FUZZERLOG: add mutator name */
           fuzzerlog_add_mutator_name("havoc_interesting_8");          
@@ -2482,6 +2553,7 @@ havoc_stage:
           /* Set word to interesting value, little endian. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_interesting)) { goto retry_havoc_step; }
 
           item = rand_below(afl, sizeof(interesting_16) >> 1);
           /* FUZZERLOG: add mutator name */
@@ -2503,6 +2575,7 @@ havoc_stage:
           /* Set word to interesting value, big endian. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_interesting)) { goto retry_havoc_step; }
 
           item = rand_below(afl, sizeof(interesting_16) >> 1);
           /* FUZZERLOG: add mutator name */
@@ -2523,6 +2596,7 @@ havoc_stage:
           /* Set dword to interesting value, little endian. */
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_interesting)) { goto retry_havoc_step; }
 
           item = rand_below(afl, sizeof(interesting_32) >> 2);
           /* FUZZERLOG: add mutator name */
@@ -2544,6 +2618,7 @@ havoc_stage:
           /* Set dword to interesting value, big endian. */
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_interesting)) { goto retry_havoc_step; }
 
           item = rand_below(afl, sizeof(interesting_32) >> 2);
           /* FUZZERLOG: add mutator name */
@@ -2563,6 +2638,7 @@ havoc_stage:
 
           /* Randomly subtract from byte. */
 
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
           item = 1 + rand_below(afl, ARITH_MAX);
           /* FUZZERLOG: add mutator name */
           fuzzerlog_add_mutator_name("havoc_arith_sub_8");
@@ -2579,6 +2655,7 @@ havoc_stage:
 
           /* Randomly add to byte. */
 
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
           item = 1 + rand_below(afl, ARITH_MAX);
           /* FUZZERLOG: add mutator name */
           fuzzerlog_add_mutator_name("havoc_arith_add_8");
@@ -2596,6 +2673,7 @@ havoc_stage:
           /* Randomly subtract from word, little endian. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
 
           u32 pos = rand_below(afl, temp_len - 1);
           item = 1 + rand_below(afl, ARITH_MAX);
@@ -2616,6 +2694,7 @@ havoc_stage:
           /* Randomly subtract from word, big endian. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
 
           u32 pos = rand_below(afl, temp_len - 1);
           u16 num = 1 + rand_below(afl, ARITH_MAX);
@@ -2638,6 +2717,7 @@ havoc_stage:
           /* Randomly add to word, little endian. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
 
           u32 pos = rand_below(afl, temp_len - 1);
           item = 1 + rand_below(afl, ARITH_MAX);
@@ -2659,6 +2739,7 @@ havoc_stage:
           /* Randomly add to word, big endian. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
 
           u32 pos = rand_below(afl, temp_len - 1);
           u16 num = 1 + rand_below(afl, ARITH_MAX);
@@ -2681,6 +2762,7 @@ havoc_stage:
           /* Randomly subtract from dword, little endian. */
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
 
           u32 pos = rand_below(afl, temp_len - 3);
           item = 1 + rand_below(afl, ARITH_MAX);
@@ -2702,6 +2784,7 @@ havoc_stage:
           /* Randomly subtract from dword, big endian. */
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
 
           u32 pos = rand_below(afl, temp_len - 3);
           u32 num = 1 + rand_below(afl, ARITH_MAX);
@@ -2724,6 +2807,7 @@ havoc_stage:
           /* Randomly add to dword, little endian. */
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
 
           u32 pos = rand_below(afl, temp_len - 3);
           item = 1 + rand_below(afl, ARITH_MAX);
@@ -2745,6 +2829,7 @@ havoc_stage:
           /* Randomly add to dword, big endian. */
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
 
           u32 pos = rand_below(afl, temp_len - 3);
           u32 num = 1 + rand_below(afl, ARITH_MAX);
@@ -2768,6 +2853,7 @@ havoc_stage:
              why not. We use XOR with 1-255 to eliminate the
              possibility of a no-op. */
 
+          if (unlikely(havoc_disable_random_bytes)) { goto retry_havoc_step; }
           u32 pos = rand_below(afl, temp_len);
           item = 1 + rand_below(afl, 255);
           /* FUZZERLOG: add mutator name */
@@ -2784,6 +2870,7 @@ havoc_stage:
 
         case MUT_CLONE_COPY: {
 
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
           if (likely(temp_len + HAVOC_BLK_XL < MAX_FILE)) {
 
             /* Clone bytes. */
@@ -2834,6 +2921,7 @@ havoc_stage:
 
         case MUT_CLONE_FIXED: {
 
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
           if (likely(temp_len + HAVOC_BLK_XL < MAX_FILE)) {
 
             /* Insert a block of constant bytes (25%). */
@@ -2889,6 +2977,7 @@ havoc_stage:
           /* Overwrite bytes with a randomly selected chunk bytes. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
 
           u32 copy_from, copy_to,
               copy_len = choose_block_len(afl, temp_len - 1);
@@ -2917,6 +3006,7 @@ havoc_stage:
           /* Overwrite bytes with fixed bytes. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
 
           u32 copy_len = choose_block_len(afl, temp_len - 1);
           u32 copy_to = rand_below(afl, temp_len - copy_len + 1);
@@ -2940,6 +3030,7 @@ havoc_stage:
         case MUT_BYTEADD: {
 
           /* Increase byte by 1. */
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
           /* FUZZERLOG: add mutator name */
           fuzzerlog_add_mutator_name("havoc_byteadd");
 #ifdef INTROSPECTION
@@ -2954,6 +3045,7 @@ havoc_stage:
         case MUT_BYTESUB: {
 
           /* Decrease byte by 1. */
+          if (unlikely(havoc_disable_arith)) { goto retry_havoc_step; }
           /* FUZZERLOG: add mutator name */
           fuzzerlog_add_mutator_name("havoc_bytesub");
 #ifdef INTROSPECTION
@@ -2968,6 +3060,7 @@ havoc_stage:
         case MUT_FLIP8: {
 
           /* Flip byte with a XOR 0xff. This is the same as NEG. */
+          if (unlikely(havoc_disable_bitflip)) { goto retry_havoc_step; }
           /* FUZZERLOG: add mutator name */
           fuzzerlog_add_mutator_name("havoc_flip8");
 #ifdef INTROSPECTION
@@ -2982,6 +3075,7 @@ havoc_stage:
         case MUT_SWITCH: {
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
 
           /* Switch bytes. */
 
@@ -3038,6 +3132,7 @@ havoc_stage:
           /* Delete bytes. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
 
           /* Don't delete too much. */
 
@@ -3065,6 +3160,7 @@ havoc_stage:
           /* Shuffle bytes. */
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
 
           u32 len = choose_block_len(afl, temp_len - 1);
           u32 off = rand_below(afl, temp_len - len + 1);
@@ -3100,6 +3196,7 @@ havoc_stage:
           /* Delete bytes. */
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
 
           /* Don't delete too much. */
 
@@ -3124,6 +3221,7 @@ havoc_stage:
         case MUT_INSERTONE: {
 
           if (unlikely(temp_len < 2)) { break; }  // no retry
+          if (unlikely(havoc_disable_structural)) { goto retry_havoc_step; }
 
           u32 clone_len = 1;
           u32 clone_to = rand_below(afl, temp_len);
@@ -3165,6 +3263,7 @@ havoc_stage:
         case MUT_ASCIINUM: {
 
           if (unlikely(temp_len < 4)) { break; }  // no retry
+          if (unlikely(havoc_disable_ascii_num)) { goto retry_havoc_step; }
 
           u32 off = rand_below(afl, temp_len), off2 = off, cnt = 0;
 
@@ -3311,6 +3410,7 @@ havoc_stage:
 
         case MUT_INSERTASCIINUM: {
 
+          if (unlikely(havoc_disable_ascii_num)) { goto retry_havoc_step; }
           u32 len = 1 + rand_below(afl, 8);
           u32 pos = rand_below(afl, temp_len);
           /* Insert ascii number. */
@@ -3346,6 +3446,7 @@ havoc_stage:
         case MUT_EXTRA_OVERWRITE: {
 
           if (unlikely(!afl->extras_cnt)) { goto retry_havoc_step; }
+          if (unlikely(havoc_disable_dict_extra)) { goto retry_havoc_step; }
 
           /* Use the dictionary. */
 
@@ -3371,6 +3472,7 @@ havoc_stage:
         case MUT_EXTRA_INSERT: {
 
           if (unlikely(!afl->extras_cnt)) { goto retry_havoc_step; }
+          if (unlikely(havoc_disable_dict_extra)) { goto retry_havoc_step; }
 
           u32 use_extra = rand_below(afl, afl->extras_cnt);
           u32 extra_len = afl->extras[use_extra].len;
@@ -3408,6 +3510,7 @@ havoc_stage:
         case MUT_AUTO_EXTRA_OVERWRITE: {
 
           if (unlikely(!afl->a_extras_cnt)) { goto retry_havoc_step; }
+          if (unlikely(havoc_disable_auto_extra)) { goto retry_havoc_step; }
 
           /* Use the dictionary. */
 
@@ -3433,6 +3536,7 @@ havoc_stage:
         case MUT_AUTO_EXTRA_INSERT: {
 
           if (unlikely(!afl->a_extras_cnt)) { goto retry_havoc_step; }
+          if (unlikely(havoc_disable_auto_extra)) { goto retry_havoc_step; }
 
           u32 use_extra = rand_below(afl, afl->a_extras_cnt);
           u32 extra_len = afl->a_extras[use_extra].len;
@@ -3469,6 +3573,7 @@ havoc_stage:
 
         case MUT_SPLICE_OVERWRITE: {
 
+          if (unlikely(havoc_disable_splice)) { goto retry_havoc_step; }
           if (unlikely(afl->ready_for_splicing_count <= 1)) {
 
             goto retry_havoc_step;
@@ -3519,6 +3624,7 @@ havoc_stage:
 
         case MUT_SPLICE_INSERT: {
 
+          if (unlikely(havoc_disable_splice)) { goto retry_havoc_step; }
           if (unlikely(afl->ready_for_splicing_count <= 1)) {
 
             goto retry_havoc_step;
@@ -5535,6 +5641,69 @@ pacemaker_fuzzing:
     afl->stage_name = afl->stage_name_buf;
     afl->stage_short = MOpt_globals.splice_stagenameshort;
     afl->stage_max = (SPLICE_HAVOC * perf_score / afl->havoc_div) >> 8;
+
+  }
+
+  /* Check if mutators should be disabled in havoc (mopt inline version) */
+  static u8 mopt_havoc_disable_bitflip = 0xFF;
+  static u8 mopt_havoc_disable_arith = 0xFF;
+  static u8 mopt_havoc_disable_interesting = 0xFF;
+  static u8 mopt_havoc_disable_dict_extra = 0xFF;
+  static u8 mopt_havoc_disable_auto_extra = 0xFF;
+  static u8 mopt_havoc_disable_random_bytes = 0xFF;
+  static u8 mopt_havoc_disable_structural = 0xFF;
+  static u8 mopt_havoc_disable_splice = 0xFF;
+  static u8 mopt_havoc_msg_shown = 0;
+
+  if (unlikely(mopt_havoc_disable_bitflip == 0xFF)) {
+
+    u8 *env_val;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_BITFLIP");
+    mopt_havoc_disable_bitflip = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_ARITH");
+    mopt_havoc_disable_arith = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_INTERESTING");
+    mopt_havoc_disable_interesting = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_DICT_EXTRA");
+    mopt_havoc_disable_dict_extra = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_AUTO_EXTRA");
+    mopt_havoc_disable_auto_extra = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_RANDOM_BYTES");
+    mopt_havoc_disable_random_bytes = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_STRUCTURAL");
+    mopt_havoc_disable_structural = (env_val && env_val[0]) ? 1 : 0;
+
+    env_val = getenv("AFL_DISABLE_MUTATOR_SPLICE");
+    mopt_havoc_disable_splice = (env_val && env_val[0]) ? 1 : 0;
+
+    if (!mopt_havoc_msg_shown) {
+
+      if (mopt_havoc_disable_bitflip)
+        ACTF("Bitflip mutator disabled in mopt havoc (AFL_DISABLE_MUTATOR_BITFLIP)");
+      if (mopt_havoc_disable_arith)
+        ACTF("Arith mutator disabled in mopt havoc (AFL_DISABLE_MUTATOR_ARITH)");
+      if (mopt_havoc_disable_interesting)
+        ACTF("Interesting mutator disabled in mopt havoc (AFL_DISABLE_MUTATOR_INTERESTING)");
+      if (mopt_havoc_disable_dict_extra)
+        ACTF("Dict_extra mutator disabled in mopt havoc (AFL_DISABLE_MUTATOR_DICT_EXTRA)");
+      if (mopt_havoc_disable_auto_extra)
+        ACTF("Auto_extra mutator disabled in mopt havoc (AFL_DISABLE_MUTATOR_AUTO_EXTRA)");
+      if (mopt_havoc_disable_random_bytes)
+        ACTF("Random_bytes mutator disabled in mopt havoc (AFL_DISABLE_MUTATOR_RANDOM_BYTES)");
+      if (mopt_havoc_disable_structural)
+        ACTF("Structural mutator disabled in mopt havoc (AFL_DISABLE_MUTATOR_STRUCTURAL)");
+      if (mopt_havoc_disable_splice)
+        ACTF("Splice mutator disabled in mopt havoc (AFL_DISABLE_MUTATOR_SPLICE)");
+      mopt_havoc_msg_shown = 1;
+
+    }
 
   }
 
