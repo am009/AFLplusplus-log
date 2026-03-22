@@ -996,8 +996,6 @@ may_save_fault:
          cases. */
 
       ++afl->total_crashes;
-      /* FUZZERLOG: log for new seed */
-      fuzzerlog_new_seed(fn, "new-crash");
 
       if (afl->saved_crashes >= KEEP_UNIQUE_CRASH) { return keeping; }
 
@@ -1046,6 +1044,8 @@ may_save_fault:
 #endif                                                    /* ^!SIMPLE_FILES */
 
       ++afl->saved_crashes;
+      /* FUZZERLOG: log for new seed */
+      fuzzerlog_new_seed(fn, "new-crash");
 #ifdef INTROSPECTION
       if (afl->custom_mutators_count && afl->current_custom_fuzz) {
 
